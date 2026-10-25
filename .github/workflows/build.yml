@@ -1,0 +1,112 @@
+# Builds the mod for every platform the game runs on. On a tag (v1.0.0, ...)
+# it releases one zip: <id>/ with a library for each platform, which players
+# unzip into the game's mods/ folder.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux libraries are built on Ubuntu 22.04, so they load on glibc
+          # 2.35 and newer (a newer one, as on ubuntu-24.04, would make them
+          # need it: fmod@GLIBC_2.38)
+          - platform: linux-x86_64
+            os: ubuntu-24.04
+            container: ubuntu:22.04
+          - platform: linux-x86
+            os: ubuntu-24.04
+            container: ubuntu:22.04
+            cmake: -DSMS_MOD_ARCH=32
+            apt: gcc-multilib g++-multilib
+          - platform: linux-arm64
+            os: ubuntu-24.04-arm
+            container: ubuntu:22.04
+          - platform: windows-x86_64
+            os: windows-2025
+            cmake: -A x64
+          - platform: windows-x86
+            os: windows-2025
+            cmake: -A Win32
+          - platform: macos-arm64
+            os: macos-15
+            cmake: -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          - platform: macos-x86_64
+            os: macos-15-intel
+            cmake: -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - if: matrix.container
+        name: Tools
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential git ca-certificates python3-pip zip ${{ matrix.apt }}
+          pip3 install cmake
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSMS_MODS_OUT="$PWD/out" ${{ matrix.cmake }}
+          cmake --build build --config Release --parallel
+          find out -type f
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mod-${{ matrix.platform }}
+          path: out
+          if-no-files-found: error
+
+  # One zip with every platform's library.
+  package:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mod-*
+          path: parts
+      - name: Zip
+        run: |
+          id=$(sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*//p' mod/mod.ini | head -1 | tr -d '\r')
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$GITHUB_REF_TYPE" == tag ]] || version="0.0.0-${GITHUB_SHA::7}"
+          mkdir -p out
+          for d in parts/mod-*; do cp -R "$d"/. out/; done
+          find out -type f
+          test "$(ls "out/$id/bin" | wc -l)" -eq 7
+          zip="$id-$version.zip"
+          (cd out && zip -r -X "../$zip" "$id")
+          echo "zip=$zip" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-zip
+          path: ${{ env.zip }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-zip
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" ./*.zip --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes "Unzip into the game's mods/ folder."
