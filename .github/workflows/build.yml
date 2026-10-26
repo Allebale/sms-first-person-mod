@@ -130,5 +130,9 @@ jobs:
           Works on any version of the game with mod support. Two features need a newer game (mod API 1.5 beta 8, not released yet):
           - aiming FLUDD where you look (on an older game FLUDD sprays the way Mario faces)
           - the "Body only" Mario model (on an older game Mario is hidden instead)
+
+          Those come with these pull requests, once they are merged and a new game is released:
+          - Game: https://github.com/chasem-dev/sms-pc-port/pull/318
+          - Mod SDK: https://github.com/chasem-dev/sms-mod-sdk/pull/12
           NOTES
           gh release create "$tag" zip/*.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "First Person $tag" --notes-file notes.md

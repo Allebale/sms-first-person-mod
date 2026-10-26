@@ -13,7 +13,20 @@ A native mod for the Super Mario Sunshine PC port: the game seen through Mario's
 The Mods menu (F1) has: the controller button, field of view (60), eye height (130, higher on Yoshi
 by itself), turn and tilt speed, invert left and right, invert up and down, and what of Mario shows.
 
-Everything but aiming FLUDD works on any game with the mod API; aiming FLUDD needs `player->set_aim` and `set_yaw` (mod API 1.5 beta 8).
+## Which game it needs
+
+Any version of the game with mod support. Two features need a newer game (mod API 1.5 beta 8, not
+released yet): aiming FLUDD where you look (`player->set_aim`, `set_yaw`), and the Body only model
+(`player->set_hidden_parts`). On an older game FLUDD sprays the way Mario faces, and Mario is hidden.
+
+They come with these pull requests, once merged and a new game is released:
+
+- Game: [chasem-dev/sms-pc-port#318](https://github.com/chasem-dev/sms-pc-port/pull/318)
+- Mod SDK: [chasem-dev/sms-mod-sdk#12](https://github.com/chasem-dev/sms-mod-sdk/pull/12)
+
+## Download
+
+The latest build, for every platform, is on the [Releases](https://github.com/Allebale/sms-first-person-mod/releases) page.
 
 ## Install
 
