@@ -124,4 +124,11 @@ jobs:
               exit 0
             fi
           fi
-          gh release create "$tag" zip/*.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "First Person $tag" --notes "Unzip into the game's mods folder. Aiming FLUDD where you look needs mod API 1.5 beta 8; everything else works on any game with the mod API."
+          cat > notes.md <<'NOTES'
+          Unzip into the game's `mods` folder.
+
+          Works on any version of the game with mod support. Two features need a newer game (mod API 1.5 beta 8, not released yet):
+          - aiming FLUDD where you look (on an older game FLUDD sprays the way Mario faces)
+          - the "Body only" Mario model (on an older game Mario is hidden instead)
+          NOTES
+          gh release create "$tag" zip/*.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "First Person $tag" --notes-file notes.md
