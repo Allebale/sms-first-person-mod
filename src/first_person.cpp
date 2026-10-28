@@ -19,9 +19,10 @@ namespace {
 
 const float kPi = 3.14159265f;
 
-// What of Mario shows in first person (the "model" setting)
-enum { MODEL_BODY = 0, MODEL_HIDDEN = 1, MODEL_SHOWN = 2 };
-const char* const kModels[] = {"Body only (no head or FLUDD)", "Hidden", "Shown"};
+// What of Mario shows in first person (the "model" setting; 2, the whole of him,
+// is no longer offered: an old setting of it is Body only)
+enum { MODEL_BODY = 0, MODEL_HIDDEN = 1 };
+const char* const kModels[] = {"Body only (no head or FLUDD)", "Hidden"};
 
 const char* const kButtons[] = {"D-pad Down", "D-pad Up", "D-pad Left", "D-pad Right", "None"};
 const uint16_t kButtonBits[] = {SMS_PAD_DOWN, SMS_PAD_UP, SMS_PAD_LEFT, SMS_PAD_RIGHT, 0};
@@ -91,7 +92,7 @@ struct FirstPerson : sms::Mod {
 	// (mod API 1.5 beta 8); without it, he is hidden.
 	int modelMode() const
 	{
-		const int m = setting("model", MODEL_BODY);
+		const int m = setting("model", MODEL_BODY) == MODEL_HIDDEN ? MODEL_HIDDEN : MODEL_BODY;
 		return m == MODEL_BODY && !hasHeadApi() ? MODEL_HIDDEN : m;
 	}
 
@@ -129,6 +130,19 @@ struct FirstPerson : sms::Mod {
 		return m.on_yoshi || (m.has_fludd && m.current_nozzle == 0);
 	}
 
+	// With his body showing, his body always faces where the view looks, so
+	// looking down he walks, runs and jumps ahead of you, whichever way the
+	// stick moves him (sideways and back too), never turned across the view
+	// (not swimming or on Yoshi: there he turns as the game turns him).
+	bool bodyFacesView() const
+	{
+		if (!enabled || !viewIsOurs || !haveYaw || modelMode() != MODEL_BODY)
+			return false;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		return api().player->get(&m) && !m.in_water && !m.on_yoshi;
+	}
+
 	// While R is held (FLUDD sprays, Yoshi spits), Mario's body and FLUDD
 	// face where the view looks, so the water goes straight ahead, while the
 	// stick still walks him any way: sideways too (player->set_aim, mod API
@@ -139,6 +153,11 @@ struct FirstPerson : sms::Mod {
 		const bool want = enabled && viewIsOurs && haveYaw && setting("aim_fludd", 1)
 		                  && ((p.held & SMS_PAD_R) || p.trigger_r >= 0.1f);
 		const bool hasAim = SMS_API_HAS(api().player, set_aim);
+		if (!want && hasAim && bodyFacesView()) {  // his body the view's way, FLUDD level
+			api().player->set_aim(1, yaw, 0.0f);
+			aiming = true;
+			return;
+		}
 		if (!want) {
 			if (aiming && hasAim)
 				api().player->set_aim(0, 0.0f, 0.0f);
@@ -168,7 +187,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("tilt_speed", "C-stick tilt speed", 90, 0, 240, 10);
 		optionBool("invert_x", "Invert left and right", false);
 		optionBool("invert", "Invert up and down", false);
-		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 3), MODEL_BODY);
+		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
 

@@ -7,7 +7,7 @@ A native mod for the Super Mario Sunshine PC port: the game seen through Mario's
 - **L** looks the way Mario faces.
 - While **R** is held, Mario's body and FLUDD aim where you look, up and down too, so the water goes straight where you look, and you can still walk any way, sideways too (Yoshi spits there as well). R all the way down no longer plants him in place: he keeps moving, spraying at full strength (the Mods menu can switch that off). Needs a game with mod API 1.5 beta 8's `player->set_aim`; on an older game FLUDD sprays the way he faces.
 - The mouse does not turn the view in first person (mods cannot read it yet).
-- **Mario in first person** (Mods menu): Body only (the default: his head and FLUDD are left out, so looking down you see his body; FLUDD still sprays; standing still he turns to face your view), Hidden, or Shown. Body only needs mod API 1.5 beta 8's `player->set_hidden_parts`; on an older game he is hidden.
+- **Mario in first person** (Mods menu): Body only (the default: his head and FLUDD are left out, so looking down you see his body; FLUDD still sprays; his body always faces where you look, so it walks and runs ahead of you whichever way you move, except swimming and on Yoshi), or Hidden. Body only needs mod API 1.5 beta 8's `player->set_hidden_parts`; on an older game he is hidden.
 - In cutscenes and talks the game's own camera takes over, and comes back after.
 
 The Mods menu (F1) has: the controller button, field of view (60), eye height (130, higher on Yoshi
