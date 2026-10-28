@@ -150,7 +150,7 @@ struct FirstPerson : sms::Mod {
 			return;
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
-		if (!api().player->get(&m) || !m.on_ground || m.in_water || m.on_yoshi || m.forward_speed < 4.0f)
+		if (!api().player->get(&m) || !m.on_ground || m.in_water || m.forward_speed < 4.0f)
 			return;
 		// the stick's angle, clockwise from up, turns the yaw down (right is -90)
 		const float want = yaw - atan2f(a, b) * 180.0f / kPi;
@@ -178,14 +178,15 @@ struct FirstPerson : sms::Mod {
 	// With his body showing, his body always faces where the view looks, so
 	// looking down he walks, runs and jumps ahead of you, whichever way the
 	// stick moves him (sideways and back too), never turned across the view
-	// (not swimming or on Yoshi: there he turns as the game turns him).
+	// (on Yoshi too, Yoshi with him; not swimming: there he turns as the game
+	// turns him).
 	bool bodyFacesView() const
 	{
 		if (!enabled || !viewIsOurs || !haveYaw || modelMode() != MODEL_BODY)
 			return false;
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
-		return api().player->get(&m) && !m.in_water && !m.on_yoshi;
+		return api().player->get(&m) && !m.in_water;
 	}
 
 	// While R is held (FLUDD sprays, Yoshi spits), Mario's body and FLUDD
