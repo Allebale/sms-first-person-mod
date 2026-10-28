@@ -125,6 +125,25 @@ struct FirstPerson : sms::Mod {
 	// first person the view turns, not him, so he turns that way at once, as
 	// the game would after the skid, and runs on. a, b: the stick as read
 	// (up the way the view looks).
+	double turnedAt = -1; // when noHardTurn last turned him (core().time())
+	bool aWas       = false;
+
+	// A side flip comes out of the skid (A during the turnaround); without the
+	// skid, A just after the turn starts it all the same.
+	void sideFlip(bool aDown)
+	{
+		const bool pressed = aDown && !aWas;
+		aWas               = aDown;
+		if (!pressed || turnedAt < 0 || core().time() - turnedAt > 0.3)
+			return;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		if (api().player->get(&m) && m.on_ground && !m.in_water && !m.on_yoshi) {
+			api().player->set_status(0x887, 0); // MARIO_STATUS_U_TURN_JUMP: the side flip
+			turnedAt = -1;
+		}
+	}
+
 	void noHardTurn(float a, float b)
 	{
 		if (a * a + b * b < 40.0f * 40.0f || !SMS_API_HAS(api().player, set_yaw))
@@ -140,8 +159,10 @@ struct FirstPerson : sms::Mod {
 			diff -= 360.0f;
 		if (diff < -180.0f)
 			diff += 360.0f;
-		if (fabsf(diff) > 90.0f)
+		if (fabsf(diff) > 90.0f) {
 			api().player->set_yaw(want);
+			turnedAt = core().time();
+		}
 	}
 
 	// FLUDD's spray nozzle out, or Yoshi: R sprays (other nozzles use R their own way)
@@ -270,13 +291,16 @@ struct FirstPerson : sms::Mod {
 			const float cd = cosf(d), sd = sinf(d);
 			const float a = s.stick_x, b = s.stick_y;
 			noHardTurn(a, b);
+			sideFlip((s.buttons & SMS_PAD_A) != 0);
 			const float na = a * cd + b * sd, nb = -a * sd + b * cd;
 			s.stick_x = (int8_t)clampf(roundf(na), -127.0f, 127.0f);
 			s.stick_y = (int8_t)clampf(roundf(nb), -127.0f, 127.0f);
 			// R all the way down plants him to aim (the stance): in first person
 			// the view aims, so keep him moving, spraying at full strength. The
 			// stance comes from R's click; its analog part is the strength.
-			if ((s.buttons & SMS_PAD_R) && setting("run_spray", 1) && spraysWithR()) {
+			// standing still it stays: R all the way down crouches him, and A then back flips
+			const bool moving = a * a + b * b >= 25.0f * 25.0f;
+			if (moving && (s.buttons & SMS_PAD_R) && setting("run_spray", 1) && spraysWithR()) {
 				s.buttons &= (uint16_t)~SMS_PAD_R;
 				if (s.trigger_r < 255)
 					s.trigger_r = 255;
