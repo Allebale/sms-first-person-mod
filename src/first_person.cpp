@@ -120,6 +120,30 @@ struct FirstPerson : sms::Mod {
 			api().player->set_yaw(yaw);
 	}
 
+	// No hard turns: running, a stick the other way would have him skid round
+	// (his facing far from where the stick points, the game's turnaround). In
+	// first person the view turns, not him, so he turns that way at once, as
+	// the game would after the skid, and runs on. a, b: the stick as read
+	// (up the way the view looks).
+	void noHardTurn(float a, float b)
+	{
+		if (a * a + b * b < 40.0f * 40.0f || !SMS_API_HAS(api().player, set_yaw))
+			return;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		if (!api().player->get(&m) || !m.on_ground || m.in_water || m.on_yoshi || m.forward_speed < 4.0f)
+			return;
+		// the stick's angle, clockwise from up, turns the yaw down (right is -90)
+		const float want = yaw - atan2f(a, b) * 180.0f / kPi;
+		float diff = fmodf(want - m.yaw, 360.0f);
+		if (diff > 180.0f)
+			diff -= 360.0f;
+		if (diff < -180.0f)
+			diff += 360.0f;
+		if (fabsf(diff) > 90.0f)
+			api().player->set_yaw(want);
+	}
+
 	// FLUDD's spray nozzle out, or Yoshi: R sprays (other nozzles use R their own way)
 	bool spraysWithR() const
 	{
@@ -245,6 +269,7 @@ struct FirstPerson : sms::Mod {
 			const float d  = (gameYaw - yaw) * kPi / 180.0f;
 			const float cd = cosf(d), sd = sinf(d);
 			const float a = s.stick_x, b = s.stick_y;
+			noHardTurn(a, b);
 			const float na = a * cd + b * sd, nb = -a * sd + b * cd;
 			s.stick_x = (int8_t)clampf(roundf(na), -127.0f, 127.0f);
 			s.stick_y = (int8_t)clampf(roundf(nb), -127.0f, 127.0f);
