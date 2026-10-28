@@ -19,9 +19,10 @@ namespace {
 
 const float kPi = 3.14159265f;
 
-// What of Mario shows in first person (the "model" setting)
-enum { MODEL_BODY = 0, MODEL_HIDDEN = 1, MODEL_SHOWN = 2 };
-const char* const kModels[] = {"Body only (no head or FLUDD)", "Hidden", "Shown"};
+// What of Mario shows in first person (the "model" setting; 2, the whole of him,
+// is no longer offered: an old setting of it is Body only)
+enum { MODEL_BODY = 0, MODEL_HIDDEN = 1 };
+const char* const kModels[] = {"Body only (no head or FLUDD)", "Hidden"};
 
 const char* const kButtons[] = {"D-pad Down", "D-pad Up", "D-pad Left", "D-pad Right", "None"};
 const uint16_t kButtonBits[] = {SMS_PAD_DOWN, SMS_PAD_UP, SMS_PAD_LEFT, SMS_PAD_RIGHT, 0};
@@ -91,7 +92,7 @@ struct FirstPerson : sms::Mod {
 	// (mod API 1.5 beta 8); without it, he is hidden.
 	int modelMode() const
 	{
-		const int m = setting("model", MODEL_BODY);
+		const int m = setting("model", MODEL_BODY) == MODEL_HIDDEN ? MODEL_HIDDEN : MODEL_BODY;
 		return m == MODEL_BODY && !hasHeadApi() ? MODEL_HIDDEN : m;
 	}
 
@@ -119,6 +120,51 @@ struct FirstPerson : sms::Mod {
 			api().player->set_yaw(yaw);
 	}
 
+	// No hard turns: running, a stick the other way would have him skid round
+	// (his facing far from where the stick points, the game's turnaround). In
+	// first person the view turns, not him, so he turns that way at once, as
+	// the game would after the skid, and runs on. a, b: the stick as read
+	// (up the way the view looks).
+	double turnedAt = -1; // when noHardTurn last turned him (core().time())
+	bool aWas       = false;
+
+	// A side flip comes out of the skid (A during the turnaround); without the
+	// skid, A just after the turn starts it all the same.
+	void sideFlip(bool aDown)
+	{
+		const bool pressed = aDown && !aWas;
+		aWas               = aDown;
+		if (!pressed || turnedAt < 0 || core().time() - turnedAt > 0.3)
+			return;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		if (api().player->get(&m) && m.on_ground && !m.in_water && !m.on_yoshi) {
+			api().player->set_status(0x887, 0); // MARIO_STATUS_U_TURN_JUMP: the side flip
+			turnedAt = -1;
+		}
+	}
+
+	void noHardTurn(float a, float b)
+	{
+		if (a * a + b * b < 40.0f * 40.0f || !SMS_API_HAS(api().player, set_yaw))
+			return;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		if (!api().player->get(&m) || !m.on_ground || m.in_water || m.on_yoshi || m.forward_speed < 4.0f)
+			return;
+		// the stick's angle, clockwise from up, turns the yaw down (right is -90)
+		const float want = yaw - atan2f(a, b) * 180.0f / kPi;
+		float diff = fmodf(want - m.yaw, 360.0f);
+		if (diff > 180.0f)
+			diff -= 360.0f;
+		if (diff < -180.0f)
+			diff += 360.0f;
+		if (fabsf(diff) > 90.0f) {
+			api().player->set_yaw(want);
+			turnedAt = core().time();
+		}
+	}
+
 	// FLUDD's spray nozzle out, or Yoshi: R sprays (other nozzles use R their own way)
 	bool spraysWithR() const
 	{
@@ -127,6 +173,19 @@ struct FirstPerson : sms::Mod {
 		if (!api().player->get(&m))
 			return false;
 		return m.on_yoshi || (m.has_fludd && m.current_nozzle == 0);
+	}
+
+	// With his body showing, his body always faces where the view looks, so
+	// looking down he walks, runs and jumps ahead of you, whichever way the
+	// stick moves him (sideways and back too), never turned across the view
+	// (not swimming or on Yoshi: there he turns as the game turns him).
+	bool bodyFacesView() const
+	{
+		if (!enabled || !viewIsOurs || !haveYaw || modelMode() != MODEL_BODY)
+			return false;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		return api().player->get(&m) && !m.in_water && !m.on_yoshi;
 	}
 
 	// While R is held (FLUDD sprays, Yoshi spits), Mario's body and FLUDD
@@ -139,6 +198,11 @@ struct FirstPerson : sms::Mod {
 		const bool want = enabled && viewIsOurs && haveYaw && setting("aim_fludd", 1)
 		                  && ((p.held & SMS_PAD_R) || p.trigger_r >= 0.1f);
 		const bool hasAim = SMS_API_HAS(api().player, set_aim);
+		if (!want && hasAim && bodyFacesView()) {  // his body the view's way, FLUDD level
+			api().player->set_aim(1, yaw, 0.0f);
+			aiming = true;
+			return;
+		}
 		if (!want) {
 			if (aiming && hasAim)
 				api().player->set_aim(0, 0.0f, 0.0f);
@@ -168,7 +232,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("tilt_speed", "C-stick tilt speed", 90, 0, 240, 10);
 		optionBool("invert_x", "Invert left and right", false);
 		optionBool("invert", "Invert up and down", false);
-		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 3), MODEL_BODY);
+		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
 
@@ -226,13 +290,17 @@ struct FirstPerson : sms::Mod {
 			const float d  = (gameYaw - yaw) * kPi / 180.0f;
 			const float cd = cosf(d), sd = sinf(d);
 			const float a = s.stick_x, b = s.stick_y;
+			noHardTurn(a, b);
+			sideFlip((s.buttons & SMS_PAD_A) != 0);
 			const float na = a * cd + b * sd, nb = -a * sd + b * cd;
 			s.stick_x = (int8_t)clampf(roundf(na), -127.0f, 127.0f);
 			s.stick_y = (int8_t)clampf(roundf(nb), -127.0f, 127.0f);
 			// R all the way down plants him to aim (the stance): in first person
 			// the view aims, so keep him moving, spraying at full strength. The
 			// stance comes from R's click; its analog part is the strength.
-			if ((s.buttons & SMS_PAD_R) && setting("run_spray", 1) && spraysWithR()) {
+			// standing still it stays: R all the way down crouches him, and A then back flips
+			const bool moving = a * a + b * b >= 25.0f * 25.0f;
+			if (moving && (s.buttons & SMS_PAD_R) && setting("run_spray", 1) && spraysWithR()) {
 				s.buttons &= (uint16_t)~SMS_PAD_R;
 				if (s.trigger_r < 255)
 					s.trigger_r = 255;
