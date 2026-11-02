@@ -165,11 +165,10 @@ struct FirstPerson : sms::Mod {
 		}
 	}
 
-	// Holding on to something: a fence or ladder, a bar, a wire, a ceiling (his status's flags
-	// 0x10000000 and 0x20000000, or 0x200000 hanging from a ceiling). There the game moves him
-	// along it by the stick itself (up and down, left and right) and keeps him facing it: the
-	// view turning the stick, or his body turned to the view, sent him the wrong way or turned
-	// him off the fence, and he let go.
+	// Holding on to something: a fence or ladder, a bar, a wire (his status's flags 0x10000000
+	// and 0x20000000), or a net on a ceiling (0x200000: under Pianta Village). His body is left
+	// to the game there: turned to the view, he was turned off the fence and let go, or walked
+	// off the ceiling's net the wrong way.
 	bool holding() const
 	{
 		SmsPlayer m = SmsPlayer();
@@ -177,6 +176,15 @@ struct FirstPerson : sms::Mod {
 		if (!api().player->get(&m))
 			return false;
 		return (m.status & 0x30000000u) != 0 || (m.status & 0x200000u) != 0;
+	}
+	// ...and of those, the ones the game moves by the stick as it is (up climbs, left and right
+	// along it): fences and ladders, bars, wires. On a ceiling's net he goes where the stick
+	// points, as walking (the view turns the stick there, as on the ground).
+	bool rawStick() const
+	{
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		return api().player->get(&m) && (m.status & 0x30000000u) != 0;
 	}
 
 	// FLUDD's spray nozzle out, or Yoshi: R sprays (other nozzles use R their own way)
@@ -300,13 +308,13 @@ struct FirstPerson : sms::Mod {
 				return;
 			SmsPadStatus& s = r.pads[0];
 			s.cstick_x = s.cstick_y = 0;
-			// Holding on (a fence, a ladder, a bar): the game takes the stick as it is, up
+			// On a fence, a ladder, a bar or a wire: the game takes the stick as it is, up
 			// climbing up, left and right along it, the sides swapped when its camera looks
 			// at his front. Left as it is, only swapped when the game's camera and the view
 			// disagree on that, so that right is the view's right.
 			SmsPlayer hm = SmsPlayer();
 			hm.size      = sizeof hm;
-			if (holding() && api().player->get(&hm)) {
+			if (rawStick() && api().player->get(&hm)) {
 				auto apart = [](float a, float b) {
 					float d = fmodf(a - b, 360.0f);
 					if (d > 180.0f)
@@ -324,8 +332,10 @@ struct FirstPerson : sms::Mod {
 			const float d  = (gameYaw - yaw) * kPi / 180.0f;
 			const float cd = cosf(d), sd = sinf(d);
 			const float a = s.stick_x, b = s.stick_y;
-			noHardTurn(a, b);
-			sideFlip((s.buttons & SMS_PAD_A) != 0);
+			if (!holding()) {  // on a ceiling's net the game turns him itself
+				noHardTurn(a, b);
+				sideFlip((s.buttons & SMS_PAD_A) != 0);
+			}
 			const float na = a * cd + b * sd, nb = -a * sd + b * cd;
 			s.stick_x = (int8_t)clampf(roundf(na), -127.0f, 127.0f);
 			s.stick_y = (int8_t)clampf(roundf(nb), -127.0f, 127.0f);
