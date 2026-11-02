@@ -45,7 +45,11 @@ struct HeldFluddApi {
 	uint32_t size;
 	uint32_t magic;
 	int (*set)(int on, float right, float down, float forward, float scale, float aim);
+	int (*set_weapon)(int weapon, int flags); // newer builds: check size
 };
+// the spray weapons (set_weapon's SMS_SPRAY_*), D-pad left and right
+const char* const kWeaponNames[] = {"Normal spray", "Shotgun", "Rifle", "Bazooka"};
+const int kWeaponCount           = 4;
 const uint32_t kHeldFluddMagic = 0x444C4648u; // "HFLD"
 
 const HeldFluddApi* heldFluddApi(const SmsApi& api)
@@ -140,16 +144,41 @@ struct FirstPerson : sms::Mod {
 			}
 			return;
 		}
+		const bool weapons = h->size >= offsetof(HeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon;
 		if (want) {
 			const float d = (float)setting("fludd_distance", 55);
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
+			if (weapons)
+				h->set_weapon(setting("weapons", 0) ? weapon : 0, setting("weapons_defeat", 0) ? 1 : 0);
 		} else if (fluddHeld) {
 			h->set(0, 0, 0, 0, 1, 0);
+			if (weapons)
+				h->set_weapon(0, 0);
 			fluddHeld = false;
 		}
 	}
 	bool toldNoHeld = false;
+	int weapon = 0; // the spray weapon chosen (kWeaponNames)
+
+	// D-pad left and right: the spray weapon, while FLUDD is in view (not a button the
+	// controller toggle uses)
+	void switchWeapon(const SmsPad& p)
+	{
+		if (!fluddHeld || !setting("weapons", 0))
+			return;
+		const int b      = setting("button", 0);
+		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
+		int step         = 0;
+		if ((p.pressed & SMS_PAD_RIGHT) && t != SMS_PAD_RIGHT)
+			step = 1;
+		else if ((p.pressed & SMS_PAD_LEFT) && t != SMS_PAD_LEFT)
+			step = kWeaponCount - 1;
+		if (!step)
+			return;
+		weapon = (weapon + step) % kWeaponCount;
+		toast(kWeaponNames[weapon]);
+	}
 
 	// A small crosshair in the middle of the view while FLUDD is held there (the spray and
 	// underwater nozzles, off Yoshi): where its water goes
@@ -338,6 +367,8 @@ struct FirstPerson : sms::Mod {
 		optionBool("fludd_view", "FLUDD in view, held like a gun (Remastered builds)", false);
 		optionNumber("fludd_distance", "FLUDD in view distance", 55, 30, 120, 5);
 		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
+		optionBool("weapons", "FLUDD weapons, D-pad left and right (Remastered builds)", false);
+		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", false);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 0);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
@@ -356,6 +387,7 @@ struct FirstPerson : sms::Mod {
 			const uint16_t bit = b >= 0 && b < 5 ? kButtonBits[b] : 0;
 			if (bit && (pad(0).pressed & bit))
 				flip();
+			switchWeapon(pad(0));
 		});
 
 		// the C-stick turns and tilts the view; L looks the way Mario faces
