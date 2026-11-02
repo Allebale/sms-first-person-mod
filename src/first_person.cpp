@@ -136,10 +136,9 @@ struct FirstPerson : sms::Mod {
 	void holdFludd()
 	{
 		const HeldFluddApi* h = heldFluddApi(api());
-		// with weapons on, the gun shows while a weapon (not the normal spray) is chosen and the
-		// spray nozzle is out (not the hover, rocket or turbo nozzle, nor on Yoshi); without them,
-		// always
-		const bool shown = !setting("weapons", 0) || (weapon != 0 && sprayNozzleOut());
+		// with weapons on, the gun shows while the spray nozzle is out, the normal spray too (not
+		// the hover, rocket or turbo nozzle, nor on Yoshi); without them, always
+		const bool shown = !setting("weapons", 0) || sprayNozzleOut();
 		const bool want  = enabled && viewIsOurs && setting("fludd_view", 0) && !holding() && shown;
 		if (!h) {
 			if (want && !toldNoHeld) {
