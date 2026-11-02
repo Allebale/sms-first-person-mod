@@ -38,34 +38,19 @@ const int kCrossCount = 10;
 
 float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 
-// FLUDD held in view like a gun: api->held_fludd, only in Allebale's builds (his SDK; this mod is
-// built with the official one, which does not have it). Found after api->files, and only if its
-// table says so (its magic).
-struct HeldFluddApi {
-	uint32_t size;
-	uint32_t magic;
-	int (*set)(int on, float right, float down, float forward, float scale, float aim);
-	int (*set_weapon)(int weapon, int flags); // newer builds: check size
-};
+// FLUDD held in view like a gun: api->held_fludd (Allebale's First Person and Remastered builds;
+// not in Chase's own yet, where SMS_API_HAS says no). Taken only if its table says so (its magic).
+const SmsHeldFluddApi* heldFluddApi(const SmsApi& api)
+{
+	if (api.size < offsetof(SmsApi, held_fludd) + sizeof(void*) || !api.held_fludd) // SMS_API_HAS
+		return nullptr;
+	const SmsHeldFluddApi* h = api.held_fludd;
+	return h->size >= offsetof(SmsHeldFluddApi, set) + sizeof(void*) && h->magic == SMS_HELD_FLUDD_MAGIC && h->set ? h
+	                                                                                                              : nullptr;
+}
 // the spray weapons (set_weapon's SMS_SPRAY_*), D-pad left and right
 const char* const kWeaponNames[] = {"Normal spray", "Shotgun", "Rifle", "Bazooka"};
 const int kWeaponCount           = 4;
-const uint32_t kHeldFluddMagic = 0x444C4648u; // "HFLD"
-
-const HeldFluddApi* heldFluddApi(const SmsApi& api)
-{
-	// right after api->files (the First Person builds), or one further on (the Remastered
-	// builds, with their reflections table between); only a table that says so is taken
-	for (int slot = 1; slot <= 2; slot++) {
-		const size_t at = offsetof(SmsApi, files) + (size_t)slot * sizeof(void*);
-		if (api.size < at + sizeof(void*))
-			break;
-		const HeldFluddApi* h = *reinterpret_cast<const HeldFluddApi* const*>(reinterpret_cast<const char*>(&api) + at);
-		if (h && h->size >= offsetof(HeldFluddApi, set) + sizeof(void*) && h->magic == kHeldFluddMagic && h->set)
-			return h;
-	}
-	return nullptr;
-}
 
 } // namespace
 
@@ -139,7 +124,7 @@ struct FirstPerson : sms::Mod {
 	bool fluddHeld = false;
 	void holdFludd()
 	{
-		const HeldFluddApi* h = heldFluddApi(api());
+		const SmsHeldFluddApi* h = heldFluddApi(api());
 		// with weapons on, the gun shows while the spray nozzle is out, the normal spray too (not
 		// the hover, rocket or turbo nozzle, nor on Yoshi); without them, always
 		const bool shown = !setting("weapons", 0) || sprayNozzleOut();
@@ -151,7 +136,7 @@ struct FirstPerson : sms::Mod {
 			}
 			return;
 		}
-		const bool weapons = h->size >= offsetof(HeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon;
+		const bool weapons = h->size >= offsetof(SmsHeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon;
 		if (want) {
 			const float d = (float)setting("fludd_distance", 55);
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
@@ -196,9 +181,9 @@ struct FirstPerson : sms::Mod {
 		if (!enabled || !viewIsOurs || !setting("fludd_view", 0) || !setting("weapons", 0))
 			return;
 		if (!toldWeapons) {
-			const HeldFluddApi* h = heldFluddApi(api());
+			const SmsHeldFluddApi* h = heldFluddApi(api());
 			info("weapons on: D-pad left and right switch them%s",
-			     h && h->size >= offsetof(HeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon
+			     h && h->size >= offsetof(SmsHeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon
 			         ? "" : " (this game cannot fire them: it needs a newer Remastered or First Person beta build)");
 			toldWeapons = true;
 		}

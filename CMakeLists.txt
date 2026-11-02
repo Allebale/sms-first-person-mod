@@ -1,7 +1,8 @@
 # cmake -S . -B build -A x64 -DSMS_MODS_OUT=C:/path/to/the/game/mods   (Windows 64-bit)
 # cmake --build build --config Release
 #
-# The SDK: the copy in sdk/ when there is one, else GitHub's at SMS_MOD_SDK_TAG.
+# The SDK: the copy in sdk/ (Chase's 1.6 beta 2 with api->held_fludd, from Allebale's SDK fork,
+# branch first-person-beta) when there is one, else GitHub's at SMS_MOD_SDK_TAG (no FLUDD in view).
 cmake_minimum_required(VERSION 3.16)
 project(first_person CXX)
 

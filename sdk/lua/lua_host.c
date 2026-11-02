@@ -261,15 +261,19 @@ static const struct {
 	{"yoshi_egg", SMS_EV_YOSHI_EGG},
 	{"episode_shine", SMS_EV_EPISODE_SHINE},
 	{"file_starting", SMS_EV_FILE_STARTING},
+	{"file_menu", SMS_EV_FILE_MENU},
+	{"episode_select", SMS_EV_EPISODE_SELECT},
+	{"shine_touch", SMS_EV_SHINE_TOUCH},
 };
 
-static const char* const kLeaves[] = {"other", "way_out", "shine", "exit_area", "life_lost", "game_over", "warp", "file"};
-static const char* leaveName(int r) { return r >= 0 && r <= 7 ? kLeaves[r] : "other"; }
+static const char* const kLeaves[] = {"other",     "way_out", "shine", "exit_area", "life_lost",
+                                     "game_over", "warp",    "file",  "state_load"};
+static const char* leaveName(int r) { return r >= 0 && r <= 8 ? kLeaves[r] : "other"; }
 
 static const char* const kNozzleReasons[] = {"switch", "swap", "box", "stage_start"};
 static const char* nozzleReasonName(int r) { return r >= 0 && r <= 3 ? kNozzleReasons[r] : "switch"; }
 
-/* API 1.5 beta 2's names */
+/* API 1.5's names */
 static const char* const kDeaths[] = {"other", "health", "drown", "pit", "goop", "electric", "crash"};
 static const char* deathName(int c) { return c >= 0 && c <= 6 ? kDeaths[c] : "other"; }
 static const char* const kStarts[] = {"wait", "roll", "return", "other", "coaster"};
@@ -280,6 +284,8 @@ static const char* const kFires[] = {"burst", "pressure"};
 static const char* const kEggs[] = {"stage", "plaza_event", "event_egg"};
 static const char* const kPauses[] = {"menu", "map", "save"};
 static const char* const kTimers[] = {"started", "stopped", "out"};
+static const char* const kFileMenu[] = {"start", "copy", "erase", "score"};
+static const char* const kShineTakes[] = {"get", "quiet"};
 static const char* pick(const char* const* names, int n, int i) { return i >= 0 && i < n ? names[i] : "other"; }
 static const char* savePromptName(int k)
 {
@@ -746,11 +752,37 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		setbool(L, "is_new", p->is_new);
 		break;
 	}
+	case SMS_EV_FILE_MENU: {
+		const SmsEvFileMenu* p = (const SmsEvFileMenu*)d;
+		setint(L, "file", p->file);
+		setbool(L, "is_empty", p->is_empty);
+		setbool(L, "open", p->open);
+		if (p->item >= 0)
+			setstr(L, "item", pick(kFileMenu, 4, p->item));
+		break;
+	}
 	case SMS_EV_EPISODE_SHINE: {
 		const SmsEvEpisodeShine* p = (const SmsEvEpisodeShine*)d;
 		setint(L, "area", p->area);
 		setint(L, "episode", p->episode);
 		setint(L, "shine", p->shine);
+		break;
+	}
+	case SMS_EV_EPISODE_SELECT: {
+		const SmsEvEpisodeSelect* p = (const SmsEvEpisodeSelect*)d;
+		setint(L, "area", p->area);
+		setint(L, "offered", p->offered);
+		setint(L, "first", p->first);
+		setint(L, "max_offered", p->max_offered);
+		break;
+	}
+	case SMS_EV_SHINE_TOUCH: {
+		const SmsEvShineTouch* p = (const SmsEvShineTouch*)d;
+		setobj(L, "object", p->object);
+		setint(L, "shine", p->shine);
+		setbool(L, "had", p->had);
+		setvec(L, "position", &p->position);
+		setstr(L, "take", pick(kShineTakes, 2, p->take));
 		break;
 	}
 	default:
@@ -839,7 +871,7 @@ static void readEvent(lua_State* L, int t, SmsEvent* ev, Script* s)
 		/* a new place is one to put him at */
 		if (p->position.x != was.x || p->position.y != was.y || p->position.z != was.z)
 			p->has_position = 1;
-		lua_getfield(L, t, "kind"); /* API 1.5 beta 6 */
+		lua_getfield(L, t, "kind"); /* API 1.5 */
 		if (lua_type(L, -1) == LUA_TSTRING) {
 			const char* k = lua_tostring(L, -1);
 			for (int i = 0; i <= 2; i++)
@@ -877,6 +909,20 @@ static void readEvent(lua_State* L, int t, SmsEvent* ev, Script* s)
 	case SMS_EV_EPISODE_SHINE: {
 		SmsEvEpisodeShine* p = (SmsEvEpisodeShine*)d;
 		p->shine             = (int)fieldnum(L, t, "shine", (float)p->shine);
+		break;
+	}
+	case SMS_EV_EPISODE_SELECT: {
+		SmsEvEpisodeSelect* p = (SmsEvEpisodeSelect*)d;
+		p->offered            = (int)fieldnum(L, t, "offered", (float)p->offered);
+		p->first              = (int)fieldnum(L, t, "first", (float)p->first);
+		break;
+	}
+	case SMS_EV_SHINE_TOUCH: {
+		SmsEvShineTouch* p = (SmsEvShineTouch*)d;
+		lua_getfield(L, t, "take");
+		if (lua_type(L, -1) == LUA_TSTRING)
+			p->take = strcmp(lua_tostring(L, -1), "quiet") == 0 ? SMS_SHINE_TAKE_QUIET : SMS_SHINE_TAKE_GET;
+		lua_pop(L, 1);
 		break;
 	}
 	case SMS_EV_FLAG_CHANGED: {
@@ -1026,7 +1072,7 @@ static int l_data_dir(lua_State* L)
 
 /* sms.files_read(name [, file]) -> the file's bytes as a string, or nil.
    file: nil the mod's own, 0..2 a save file, "current" the one played
-   (API 1.5 beta 6). */
+   (API 1.5). */
 static int filesScope(lua_State* L, int idx)
 {
 	if (lua_isnoneornil(L, idx))
@@ -1089,7 +1135,7 @@ static int l_files_dir(lua_State* L)
 }
 
 /* sms.set_object_color(obj, which, color) -> whether it has a model; which:
-   "material", "tev0", "tev1", "tev2" (API 1.5 beta 6). */
+   "material", "tev0", "tev1", "tev2" (API 1.5). */
 static int l_set_object_color(lua_State* L)
 {
 	static const char* const kWhich[] = {"material", "tev0", "tev1", "tev2", NULL};
@@ -1295,7 +1341,7 @@ static const char* const kHudParts[] = {"coins", "shines", "blue_coins", "health
 
 /* sms.set_hud_hidden{ coins = true, health = true, ... } or { all = true };
    an empty table (or none) shows the HUD again. Returns whether the game
-   can (API 1.5 beta 3). */
+   can (API 1.5). */
 static int l_set_hud_hidden(lua_State* L)
 {
 	uint32_t mask = 0;
@@ -1326,7 +1372,7 @@ static int l_hud_hidden(lua_State* L)
 	return 1;
 }
 
-/* sms.set_yaw(degrees): Mario faces that way at once (API 1.5 beta 8) */
+/* sms.set_yaw(degrees): Mario faces that way at once (API 1.5) */
 static int l_set_yaw(lua_State* L)
 {
 	const float deg = (float)luaL_checknumber(L, 1);
@@ -1336,7 +1382,7 @@ static int l_set_yaw(lua_State* L)
 
 /* sms.set_aim(yaw [, pitch]) turns Mario's body and FLUDD that way (pitch
    degrees up) whichever way he moves; sms.set_aim(nil) gives his own aim
-   back (API 1.5 beta 8) */
+   back (API 1.5) */
 static int l_set_aim(lua_State* L)
 {
 	const int on      = !lua_isnoneornil(L, 1);
@@ -1348,7 +1394,7 @@ static int l_set_aim(lua_State* L)
 
 /* sms.set_hidden_parts{ head = true, fludd = true }: parts of Mario left
    out, the rest of him drawn; an empty table (or none) draws all of him
-   (API 1.5 beta 8). Returns whether the game can. */
+   (API 1.5). Returns whether the game can. */
 static int l_set_hidden_parts(lua_State* L)
 {
 	uint32_t parts = 0;
@@ -2138,7 +2184,7 @@ static int n_set_status(lua_State* L)
 	return 0;
 }
 
-/* (1.5 beta 5) set_collision(true | false | nil) -> true: players collide (nil: the host's setting); collision() */
+/* (1.5) set_collision(true | false | nil) -> true: players collide (nil: the host's setting); collision() */
 static int n_set_collision(lua_State* L)
 {
 	const int on = lua_isnoneornil(L, 1) ? -1 : lua_toboolean(L, 1);
