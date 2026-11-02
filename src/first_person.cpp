@@ -14,6 +14,7 @@
 #include <sms_mod.hpp>
 
 #include <math.h>
+#include <stddef.h>
 
 namespace {
 
@@ -28,6 +29,27 @@ const char* const kButtons[] = {"D-pad Down", "D-pad Up", "D-pad Left", "D-pad R
 const uint16_t kButtonBits[] = {SMS_PAD_DOWN, SMS_PAD_UP, SMS_PAD_LEFT, SMS_PAD_RIGHT, 0};
 
 float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+// FLUDD held in view like a gun: api->held_fludd, only in Allebale's Remastered builds (its
+// combined-plus SDK; this mod is built with the official one, which does not have it). Found
+// after api->files and api->reflections, and only if its table says so (its magic).
+struct HeldFluddApi {
+	uint32_t size;
+	uint32_t magic;
+	int (*set)(int on, float right, float down, float forward, float scale, float aim);
+};
+const uint32_t kHeldFluddMagic = 0x444C4648u; // "HFLD"
+
+const HeldFluddApi* heldFluddApi(const SmsApi& api)
+{
+	const size_t at = offsetof(SmsApi, files) + 2 * sizeof(void*);
+	if (api.size < at + sizeof(void*))
+		return nullptr;
+	const HeldFluddApi* h = *reinterpret_cast<const HeldFluddApi* const*>(reinterpret_cast<const char*>(&api) + at);
+	if (!h || h->size < sizeof(HeldFluddApi) || h->magic != kHeldFluddMagic || !h->set)
+		return nullptr;
+	return h;
+}
 
 } // namespace
 
@@ -63,6 +85,7 @@ struct FirstPerson : sms::Mod {
 			viewIsOurs = false;
 			aimFludd(); // lets his body go, if it was turned
 			showHead();
+			holdFludd();
 		}
 		pitch   = 0;
 		haveEye = false;
@@ -95,6 +118,30 @@ struct FirstPerson : sms::Mod {
 		const int m = setting("model", MODEL_BODY) == MODEL_HIDDEN ? MODEL_HIDDEN : MODEL_BODY;
 		return m == MODEL_BODY && !hasHeadApi() ? MODEL_HIDDEN : m;
 	}
+
+	// FLUDD in view, held like a gun (the game moves its own model there), while the view is his
+	bool fluddHeld = false;
+	void holdFludd()
+	{
+		const HeldFluddApi* h = heldFluddApi(api());
+		const bool want       = enabled && viewIsOurs && setting("fludd_view", 0) && !holding();
+		if (!h) {
+			if (want && !toldNoHeld) {
+				warn("this game cannot show FLUDD in view (it needs a Remastered build)");
+				toldNoHeld = true;
+			}
+			return;
+		}
+		if (want) {
+			const float d = (float)setting("fludd_distance", 55);
+			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
+			fluddHeld = true;
+		} else if (fluddHeld) {
+			h->set(0, 0, 0, 0, 1, 0);
+			fluddHeld = false;
+		}
+	}
+	bool toldNoHeld = false;
 
 	// His head and FLUDD out while the view is his and his body shows; back otherwise.
 	void showHead()
@@ -258,6 +305,8 @@ struct FirstPerson : sms::Mod {
 		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
+		optionBool("fludd_view", "FLUDD in view, held like a gun (Remastered builds)", false);
+		optionNumber("fludd_distance", "FLUDD in view distance", 55, 30, 120, 5);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
 			if (k.scancode != toggleKey)
@@ -357,6 +406,7 @@ struct FirstPerson : sms::Mod {
 				haveEye = false;
 				aimFludd(); // lets his body go, if it was turned
 				showHead();
+				holdFludd();
 				return;
 			}
 			viewIsOurs = true;
@@ -394,6 +444,7 @@ struct FirstPerson : sms::Mod {
 			c.fovy       = (float)setting("fov", 60);
 			aimFludd(); // his model too, before it is drawn
 			showHead();
+			holdFludd();
 		});
 
 		// his model out of the view (the camera is inside his head)
