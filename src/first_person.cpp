@@ -150,7 +150,7 @@ struct FirstPerson : sms::Mod {
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
 			if (weapons)
-				h->set_weapon(setting("weapons", 0) ? weapon : 0, setting("weapons_defeat", 0) ? 1 : 0);
+				h->set_weapon(weaponNow(), (setting("weapons_defeat", 0) ? 1 : 0) | (rHeld ? 2 : 0));
 		} else if (fluddHeld) {
 			h->set(0, 0, 0, 0, 1, 0);
 			if (weapons)
@@ -160,6 +160,19 @@ struct FirstPerson : sms::Mod {
 	}
 	bool toldNoHeld = false;
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
+	bool rHeld = false; // R, as the controller has it (kept from the game while a weapon fires)
+
+	// the weapon that fires now: with weapons on, FLUDD held and its spray nozzle out
+	int weaponNow() const
+	{
+		if (!fluddHeld || !setting("weapons", 0) || weapon == 0)
+			return 0;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || m.current_nozzle != 0)
+			return 0;
+		return weapon;
+	}
 	bool toldWeapons = false;
 
 	// D-pad left and right: the spray weapon, while FLUDD is in view (not a button the
@@ -430,6 +443,13 @@ struct FirstPerson : sms::Mod {
 				return;
 			SmsPadStatus& s = r.pads[0];
 			s.cstick_x = s.cstick_y = 0;
+			// a weapon chosen: R is the weapon's, not the game's (no stream, pump or its sound);
+			// the game fires the weapon each time it is ready while R is held
+			rHeld = (s.buttons & SMS_PAD_R) || s.trigger_r >= 60;
+			if (weaponNow() != 0) {
+				s.buttons &= (uint16_t)~SMS_PAD_R;
+				s.trigger_r = 0;
+			}
 			// On a fence, a ladder, a bar or a wire: the game takes the stick as it is, up
 			// climbing up, left and right along it, the sides swapped when its camera looks
 			// at his front. Left as it is, only swapped when the game's camera and the view
