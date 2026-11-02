@@ -143,6 +143,24 @@ struct FirstPerson : sms::Mod {
 	}
 	bool toldNoHeld = false;
 
+	// A small crosshair in the middle of the view while FLUDD is held there (the spray and
+	// underwater nozzles, off Yoshi): where its water goes
+	void drawCrosshair()
+	{
+		if (!fluddHeld || !viewIsOurs || !setting("crosshair", 0))
+			return;
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || (m.current_nozzle != 0 && m.current_nozzle != 2))
+			return;
+		float w = 0, h = 0;
+		draw().canvas(&w, &h);
+		const float x = w * 0.5f, y = h * 0.5f, r = h * 0.009f;
+		draw().circle_outline(x, y, r, r * 0.55f, SMS_RGBA(0, 0, 0, 110));
+		draw().circle_outline(x, y, r, r * 0.25f, SMS_RGBA(255, 255, 255, 220));
+		draw().circle(x, y, r * 0.22f, SMS_RGBA(255, 255, 255, 230));
+	}
+
 	// His head and FLUDD out while the view is his and his body shows; back otherwise.
 	void showHead()
 	{
@@ -307,6 +325,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
 		optionBool("fludd_view", "FLUDD in view, held like a gun (Remastered builds)", false);
 		optionNumber("fludd_distance", "FLUDD in view distance", 55, 30, 120, 5);
+		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
 			if (k.scancode != toggleKey)
@@ -455,6 +474,8 @@ struct FirstPerson : sms::Mod {
 
 
 		on<SmsEvDraw>(SMS_EV_DRAW, [this](SmsEvDraw& d) {
+			if (d.mode == SMS_MODE_STAGE)
+				drawCrosshair();
 			if (d.mode != SMS_MODE_STAGE || core().time() > toastUntil)
 				return;
 			const float w = draw().text_width(14, toastText) + 20;
