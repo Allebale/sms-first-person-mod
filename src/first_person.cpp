@@ -136,7 +136,10 @@ struct FirstPerson : sms::Mod {
 	void holdFludd()
 	{
 		const HeldFluddApi* h = heldFluddApi(api());
-		const bool want       = enabled && viewIsOurs && setting("fludd_view", 0) && !holding();
+		// with weapons on, the gun shows for 15 seconds after a weapon is chosen or fired (R),
+		// then FLUDD is as the game has it again; without them, always
+		const bool shown = !setting("weapons", 0) || core().time() < showGunUntil;
+		const bool want  = enabled && viewIsOurs && setting("fludd_view", 0) && !holding() && shown;
 		if (!h) {
 			if (want && !toldNoHeld) {
 				warn("this game cannot show FLUDD in view (it needs a Remastered build)");
@@ -160,12 +163,21 @@ struct FirstPerson : sms::Mod {
 	}
 	bool toldNoHeld = false;
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
+	double showGunUntil = 0; // the gun shows until then (weapons on)
+	static constexpr double kShowGun = 15.0;
 	bool rHeld = false; // R, as the controller has it (kept from the game while a weapon fires)
+
+	bool sprayNozzleOut() const
+	{
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		return api().player->get(&m) && m.has_fludd && !m.on_yoshi && m.current_nozzle == 0;
+	}
 
 	// the weapon that fires now: with weapons on, FLUDD held and its spray nozzle out
 	int weaponNow() const
 	{
-		if (!fluddHeld || !setting("weapons", 0) || weapon == 0)
+		if (!enabled || !viewIsOurs || !setting("fludd_view", 0) || !setting("weapons", 0) || weapon == 0 || holding())
 			return 0;
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
@@ -179,7 +191,7 @@ struct FirstPerson : sms::Mod {
 	// controller toggle uses)
 	void switchWeapon(const SmsPad& p)
 	{
-		if (!fluddHeld || !setting("weapons", 0))
+		if (!enabled || !viewIsOurs || !setting("fludd_view", 0) || !setting("weapons", 0))
 			return;
 		if (!toldWeapons) {
 			const HeldFluddApi* h = heldFluddApi(api());
@@ -197,7 +209,8 @@ struct FirstPerson : sms::Mod {
 			step = kWeaponCount - 1;
 		if (!step)
 			return;
-		weapon = (weapon + step) % kWeaponCount;
+		weapon       = (weapon + step) % kWeaponCount;
+		showGunUntil = core().time() + kShowGun;
 		toast(kWeaponNames[weapon]);
 		info("weapon: %s", kWeaponNames[weapon]);
 	}
@@ -446,6 +459,8 @@ struct FirstPerson : sms::Mod {
 			// a weapon chosen: R is the weapon's, not the game's (no stream, pump or its sound);
 			// the game fires the weapon each time it is ready while R is held
 			rHeld = (s.buttons & SMS_PAD_R) || s.trigger_r >= 60;
+			if (rHeld && setting("weapons", 0) && sprayNozzleOut())
+				showGunUntil = core().time() + kShowGun; // fired (or sprayed): shown again
 			if (weaponNow() != 0) {
 				s.buttons &= (uint16_t)~SMS_PAD_R;
 				s.trigger_r = 0;
