@@ -160,6 +160,7 @@ struct FirstPerson : sms::Mod {
 	}
 	bool toldNoHeld = false;
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
+	bool toldWeapons = false;
 
 	// D-pad left and right: the spray weapon, while FLUDD is in view (not a button the
 	// controller toggle uses)
@@ -167,6 +168,13 @@ struct FirstPerson : sms::Mod {
 	{
 		if (!fluddHeld || !setting("weapons", 0))
 			return;
+		if (!toldWeapons) {
+			const HeldFluddApi* h = heldFluddApi(api());
+			info("weapons on: D-pad left and right switch them%s",
+			     h && h->size >= offsetof(HeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon
+			         ? "" : " (this game cannot fire them: it needs a newer Remastered build)");
+			toldWeapons = true;
+		}
 		const int b      = setting("button", 0);
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
 		int step         = 0;
@@ -178,6 +186,7 @@ struct FirstPerson : sms::Mod {
 			return;
 		weapon = (weapon + step) % kWeaponCount;
 		toast(kWeaponNames[weapon]);
+		info("weapon: %s", kWeaponNames[weapon]);
 	}
 
 	// A small crosshair in the middle of the view while FLUDD is held there (the spray and
