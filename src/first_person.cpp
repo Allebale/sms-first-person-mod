@@ -28,6 +28,13 @@ const char* const kModels[] = {"Body only (no head or FLUDD)", "Hidden"};
 const char* const kButtons[] = {"D-pad Down", "D-pad Up", "D-pad Left", "D-pad Right", "None"};
 const uint16_t kButtonBits[] = {SMS_PAD_DOWN, SMS_PAD_UP, SMS_PAD_LEFT, SMS_PAD_RIGHT, 0};
 
+// the crosshair's colors (the "crosshair_color" setting)
+const char* const kCrossNames[] = {"White", "Red", "Green", "Blue", "Yellow", "Cyan", "Pink", "Orange", "Black"};
+const SmsColor kCrossColors[]   = {SMS_RGB(255, 255, 255), SMS_RGB(255, 60, 60),  SMS_RGB(70, 230, 90),
+                                   SMS_RGB(70, 150, 255),  SMS_RGB(255, 225, 40), SMS_RGB(60, 235, 235),
+                                   SMS_RGB(255, 110, 200), SMS_RGB(255, 150, 40), SMS_RGB(20, 20, 20)};
+const int kCrossCount = 9;
+
 float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 
 // FLUDD held in view like a gun: api->held_fludd, only in Allebale's Remastered builds (its
@@ -156,9 +163,13 @@ struct FirstPerson : sms::Mod {
 		float w = 0, h = 0;
 		draw().canvas(&w, &h);
 		const float x = w * 0.5f, y = h * 0.5f, r = h * 0.009f;
-		draw().circle_outline(x, y, r, r * 0.55f, SMS_RGBA(0, 0, 0, 110));
-		draw().circle_outline(x, y, r, r * 0.25f, SMS_RGBA(255, 255, 255, 220));
-		draw().circle(x, y, r * 0.22f, SMS_RGBA(255, 255, 255, 230));
+		const int ci     = setting("crosshair_color", 0);
+		const SmsColor c = kCrossColors[ci >= 0 && ci < kCrossCount ? ci : 0];
+		// an outline round it, dark (light round a black one), so it shows on any ground
+		const SmsColor edge = ci == kCrossCount - 1 ? SMS_RGBA(255, 255, 255, 120) : SMS_RGBA(0, 0, 0, 110);
+		draw().circle_outline(x, y, r, r * 0.55f, edge);
+		draw().circle_outline(x, y, r, r * 0.25f, c);
+		draw().circle(x, y, r * 0.22f, c);
 	}
 
 	// His head and FLUDD out while the view is his and his body shows; back otherwise.
@@ -326,6 +337,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("fludd_view", "FLUDD in view, held like a gun (Remastered builds)", false);
 		optionNumber("fludd_distance", "FLUDD in view distance", 55, 30, 120, 5);
 		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
+		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 0);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
 			if (k.scancode != toggleKey)
