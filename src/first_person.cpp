@@ -38,9 +38,9 @@ const int kCrossCount = 10;
 
 float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 
-// FLUDD held in view like a gun: api->held_fludd, only in Allebale's Remastered builds (its
-// combined-plus SDK; this mod is built with the official one, which does not have it). Found
-// after api->files and api->reflections, and only if its table says so (its magic).
+// FLUDD held in view like a gun: api->held_fludd, only in Allebale's builds (his SDK; this mod is
+// built with the official one, which does not have it). Found after api->files, and only if its
+// table says so (its magic).
 struct HeldFluddApi {
 	uint32_t size;
 	uint32_t magic;
@@ -54,13 +54,17 @@ const uint32_t kHeldFluddMagic = 0x444C4648u; // "HFLD"
 
 const HeldFluddApi* heldFluddApi(const SmsApi& api)
 {
-	const size_t at = offsetof(SmsApi, files) + 2 * sizeof(void*);
-	if (api.size < at + sizeof(void*))
-		return nullptr;
-	const HeldFluddApi* h = *reinterpret_cast<const HeldFluddApi* const*>(reinterpret_cast<const char*>(&api) + at);
-	if (!h || h->size < sizeof(HeldFluddApi) || h->magic != kHeldFluddMagic || !h->set)
-		return nullptr;
-	return h;
+	// right after api->files (the First Person builds), or one further on (the Remastered
+	// builds, with their reflections table between); only a table that says so is taken
+	for (int slot = 1; slot <= 2; slot++) {
+		const size_t at = offsetof(SmsApi, files) + (size_t)slot * sizeof(void*);
+		if (api.size < at + sizeof(void*))
+			break;
+		const HeldFluddApi* h = *reinterpret_cast<const HeldFluddApi* const*>(reinterpret_cast<const char*>(&api) + at);
+		if (h && h->size >= offsetof(HeldFluddApi, set) + sizeof(void*) && h->magic == kHeldFluddMagic && h->set)
+			return h;
+	}
+	return nullptr;
 }
 
 } // namespace
@@ -142,7 +146,7 @@ struct FirstPerson : sms::Mod {
 		const bool want  = enabled && viewIsOurs && setting("fludd_view", 0) && !holding() && shown;
 		if (!h) {
 			if (want && !toldNoHeld) {
-				warn("this game cannot show FLUDD in view (it needs a Remastered build)");
+				warn("this game cannot show FLUDD in view (it needs a Remastered or First Person beta build)");
 				toldNoHeld = true;
 			}
 			return;
@@ -195,7 +199,7 @@ struct FirstPerson : sms::Mod {
 			const HeldFluddApi* h = heldFluddApi(api());
 			info("weapons on: D-pad left and right switch them%s",
 			     h && h->size >= offsetof(HeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon
-			         ? "" : " (this game cannot fire them: it needs a newer Remastered build)");
+			         ? "" : " (this game cannot fire them: it needs a newer Remastered or First Person beta build)");
 			toldWeapons = true;
 		}
 		const int b      = setting("button", 0);
@@ -396,10 +400,10 @@ struct FirstPerson : sms::Mod {
 		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
-		optionBool("fludd_view", "FLUDD in view, held like a gun (Remastered builds)", false);
+		optionBool("fludd_view", "FLUDD in view, held like a gun (Allebale's builds)", false);
 		optionNumber("fludd_distance", "FLUDD in view distance", 55, 30, 120, 5);
 		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
-		optionBool("weapons", "FLUDD weapons, D-pad left and right (Remastered builds)", false);
+		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", false);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", false);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 0);
 
