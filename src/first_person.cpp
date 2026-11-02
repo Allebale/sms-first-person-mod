@@ -29,11 +29,12 @@ const char* const kButtons[] = {"D-pad Down", "D-pad Up", "D-pad Left", "D-pad R
 const uint16_t kButtonBits[] = {SMS_PAD_DOWN, SMS_PAD_UP, SMS_PAD_LEFT, SMS_PAD_RIGHT, 0};
 
 // the crosshair's colors (the "crosshair_color" setting)
-const char* const kCrossNames[] = {"White", "Red", "Green", "Blue", "Yellow", "Cyan", "Pink", "Orange", "Black"};
+const char* const kCrossNames[] = {"White", "Red", "Green", "Blue", "Yellow", "Cyan", "Pink", "Orange", "Grey", "Black"};
 const SmsColor kCrossColors[]   = {SMS_RGB(255, 255, 255), SMS_RGB(255, 60, 60),  SMS_RGB(70, 230, 90),
                                    SMS_RGB(70, 150, 255),  SMS_RGB(255, 225, 40), SMS_RGB(60, 235, 235),
-                                   SMS_RGB(255, 110, 200), SMS_RGB(255, 150, 40), SMS_RGB(20, 20, 20)};
-const int kCrossCount = 9;
+                                   SMS_RGB(255, 110, 200), SMS_RGB(255, 150, 40), SMS_RGB(150, 150, 150),
+                                   SMS_RGB(20, 20, 20)};
+const int kCrossCount = 10;
 
 float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 
