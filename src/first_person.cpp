@@ -50,10 +50,10 @@ const SmsHeldFluddApi* heldFluddApi(const SmsApi& api)
 	                                                                                                              : nullptr;
 }
 // the spray weapons (set_weapon's SMS_SPRAY_*), D-pad left and right
-// (the Multi Shotgun is the game's shotgun, and zoomed in (D-pad up) its rifle: the same shot,
-// its drops flying dead straight with no end to their reach; one set of numbers for both)
-const char* const kWeaponNames[] = {"Normal spray", "Multi Shotgun", "Bazooka"};
-const int kWeaponIds[]           = {SMS_SPRAY_NORMAL, SMS_SPRAY_SHOTGUN, SMS_SPRAY_BAZOOKA};
+// (the Rifle: one big, fast blob of water, dead straight with no end to its reach; its zoom on
+// D-pad up)
+const char* const kWeaponNames[] = {"Normal spray", "Rifle", "Bazooka"};
+const int kWeaponIds[]           = {SMS_SPRAY_NORMAL, SMS_SPRAY_RIFLE, SMS_SPRAY_BAZOOKA};
 const int kWeaponCount           = 3;
 
 } // namespace
@@ -167,14 +167,14 @@ struct FirstPerson : sms::Mod {
 		ns.size          = sizeof ns;
 		ns.every         = (float)setting("normal_defeat_time", 10) / 10.0f;
 		h->set_weapon_stats(SMS_SPRAY_NORMAL, &ns);
-		static const char* const kKeys[] = {"shotgun", "shotgun", "bazooka"}; // the Multi Shotgun's for its zoomed shot too
+		static const char* const kKeys[] = {"shotgun", "shotgun", "bazooka"}; // the Rifle's (its keys kept from the shotgun's)
 		for (int w = SMS_SPRAY_SHOTGUN; w <= SMS_SPRAY_BAZOOKA; w++) {
 			const std::string k = kKeys[w - 1];
 			SmsSprayStats st    = SmsSprayStats();
 			st.size             = sizeof st;
 			st.every            = (float)setting((k + "_rate").c_str(), 10) / 10.0f;
 			st.push             = (float)setting((k + "_push").c_str(), 100) / 100.0f;
-			st.range            = w == SMS_SPRAY_RIFLE ? 1.0f : (float)setting((k + "_range").c_str(), 100) / 100.0f; // zoomed: no end
+			st.range            = w == SMS_SPRAY_BAZOOKA ? (float)setting("bazooka_range", 100) / 100.0f : 1.0f; // the Rifle's has no end
 			st.to_defeat        = setting((k + "_defeat").c_str(), 1);
 			st.water            = setting((k + "_water").c_str(), 12);
 			st.hit_size         = 1.0f;
@@ -193,13 +193,13 @@ struct FirstPerson : sms::Mod {
 	{
 		const int b      = setting("button", 0);
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-		if (zoomed && (chosen() != SMS_SPRAY_SHOTGUN || !fluddHeld))
+		if (zoomed && (chosen() != SMS_SPRAY_RIFLE || !fluddHeld))
 			zoomed = false;
 		// once a press: the moment D-pad up goes down (its "pressed" can come again while held)
 		const bool down  = (p.held & SMS_PAD_UP) != 0;
 		const bool fresh = down && !upWasDown;
 		upWasDown        = down;
-		if (!fresh || t == SMS_PAD_UP || chosen() != SMS_SPRAY_SHOTGUN || !fluddHeld)
+		if (!fresh || t == SMS_PAD_UP || chosen() != SMS_SPRAY_RIFLE || !fluddHeld)
 			return;
 		zoomed = !zoomed;
 		info("rifle zoom %s", zoomed ? "on" : "off");
@@ -231,7 +231,7 @@ struct FirstPerson : sms::Mod {
 		m.size      = sizeof m;
 		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || m.current_nozzle != 0)
 			return 0;
-		return chosen() == SMS_SPRAY_SHOTGUN && zoomed ? SMS_SPRAY_RIFLE : chosen(); // zoomed: no end to its reach
+		return chosen();
 	}
 	bool toldWeapons = false;
 
@@ -460,12 +460,11 @@ struct FirstPerson : sms::Mod {
 		optionBool("normal_defeat", "Normal spray can defeat enemies", false);
 		optionNumber("normal_defeat_time", "Normal spray time to defeat (tenths of a second)", 10, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
-		optionNumber("shotgun_rate", "Multi Shotgun fire rate (tenths of a second)", 10, 1, 100, 1);
-		optionNumber("shotgun_push", "Multi Shotgun push (percent)", 100, 0, 400, 10);
-		optionNumber("shotgun_range", "Multi Shotgun range (percent, unlimited zoomed)", 100, 20, 400, 10);
-		optionNumber("shotgun_defeat", "Multi Shotgun shots to defeat", 2, 1, 10, 1);
-		optionNumber("shotgun_water", "Multi Shotgun water per shot", 24, 0, 200, 2);
-		optionNumber("rifle_zoom", "Multi Shotgun zoom, D-pad up (field of view)", 25, 5, 60, 5);
+		optionNumber("shotgun_rate", "Rifle fire rate (tenths of a second)", 10, 1, 100, 1);
+		optionNumber("shotgun_push", "Rifle push (percent)", 100, 0, 400, 10);
+		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
+		optionNumber("shotgun_water", "Rifle water per shot", 24, 0, 200, 2);
+		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
 		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 50, 1, 200, 5);
 		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
