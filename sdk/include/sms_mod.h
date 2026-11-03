@@ -1781,6 +1781,7 @@ typedef struct SmsHeldFluddApi {
 enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPRAY_BAZOOKA = 3, SMS_SPRAY_SMG = 4 };
 #define SMS_SPRAY_DEFEAT 1 /* set_weapon's flags: a weapon may defeat enemies */
 #define SMS_SPRAY_DEFEAT_NORMAL 4 /* set_weapon's flags: the normal spray may defeat enemies too (a short burst on one) */
+#define SMS_SPRAY_THIRD_PERSON 8 /* set_weapon's flags: the weapon fires with FLUDD on his back too (not held in view): from its nozzle, the way he faces */
 
 struct SmsApi {
 	uint32_t size;

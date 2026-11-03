@@ -153,14 +153,29 @@ struct FirstPerson : sms::Mod {
 				h->set_weapon(weaponNow(), (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
 				                               | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0));
 			sendWeaponStats(h);
-		} else if (fluddHeld) {
-			h->set(0, 0, 0, 0, 1, 0);
-			if (weapons)
-				h->set_weapon(0, 0);
-			fluddHeld = false;
+		} else {
+			if (fluddHeld) {
+				h->set(0, 0, 0, 0, 1, 0);
+				fluddHeld = false;
+				if (weapons)
+					h->set_weapon(0, 0);
+			}
+			// in third person, with its option on: FLUDD stays on his back, the weapon fires from it
+			const int w3 = weapons && thirdPersonWeapons() ? weaponNow() : 0;
+			if (w3) {
+				h->set_weapon(w3, (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
+				                      | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0) | SMS_SPRAY_THIRD_PERSON);
+				sendWeaponStats(h);
+				thirdArmed = true;
+			} else if (thirdArmed) {
+				if (weapons)
+					h->set_weapon(0, 0);
+				thirdArmed = false;
+			}
 		}
 	}
 	bool toldNoHeld = false;
+	bool thirdArmed = false; // a weapon set for third person
 	// The weapons' numbers from the menu, to the game (newer builds: set_weapon_stats).
 	void sendWeaponStats(const SmsHeldFluddApi* h)
 	{
@@ -238,11 +253,17 @@ struct FirstPerson : sms::Mod {
 		return api().player->get(&m) && m.has_fludd && !m.on_yoshi && m.current_nozzle == 0;
 	}
 
-	// the weapon that fires now: with weapons on, FLUDD held and its spray nozzle out
+	// in first person, FLUDD held in view
+	bool firstPersonWeapons() const { return enabled && viewIsOurs && setting("fludd_view", 1); }
+	// in third person, with its option on (nothing on screen changes)
+	bool thirdPersonWeapons() const { return !(enabled && viewIsOurs) && setting("third_person_weapons", 0); }
+	// the weapons can be used here and now
+	bool weaponsHere() const { return setting("weapons", 1) && (firstPersonWeapons() || thirdPersonWeapons()); }
+
+	// the weapon that fires now: with weapons on, FLUDD held (or the third person option) and its spray nozzle out
 	int weaponNow() const
 	{
-		if (!enabled || !viewIsOurs || !setting("fludd_view", 1) || !setting("weapons", 1) || chosen() == SMS_SPRAY_NORMAL
-		    || holding())
+		if (!weaponsHere() || chosen() == SMS_SPRAY_NORMAL || holding())
 			return 0;
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
@@ -256,7 +277,7 @@ struct FirstPerson : sms::Mod {
 	// controller toggle uses)
 	void switchWeapon(const SmsPad& p)
 	{
-		if (!enabled || !viewIsOurs || !setting("fludd_view", 1) || !setting("weapons", 1))
+		if (!weaponsHere())
 			return;
 		if (!toldWeapons) {
 			const SmsHeldFluddApi* h = heldFluddApi(api());
@@ -477,6 +498,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
+		optionBool("third_person_weapons", "FLUDD weapons in third person too", false);
 		optionBool("normal_defeat", "FLUDD can defeat enemies", true);
 		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
@@ -551,6 +573,14 @@ struct FirstPerson : sms::Mod {
 		// way it looks). Turn the stick by the difference, so up runs the way
 		// the view looks; and keep the C-stick from the game's camera.
 		on<SmsEvPadRead>(SMS_EV_PAD_READ, [this](SmsEvPadRead& r) {
+			if (r.pads && thirdPersonWeapons()) { // in third person: R is the weapon's too
+				SmsPadStatus& s = r.pads[0];
+				rHeld = (s.buttons & SMS_PAD_R) || s.trigger_r >= 60;
+				if (weaponNow() != 0) {
+					s.buttons &= (uint16_t)~SMS_PAD_R;
+					s.trigger_r = 0;
+				}
+			}
 			if (!enabled || !viewIsOurs || !haveYaw || !haveGameYaw || !r.pads)
 				return;
 			SmsPadStatus& s = r.pads[0];
