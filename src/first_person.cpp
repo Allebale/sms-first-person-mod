@@ -143,7 +143,10 @@ struct FirstPerson : sms::Mod {
 		}
 		const bool weapons = h->size >= offsetof(SmsHeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon;
 		if (want) {
-			const float d = (float)setting("fludd_distance", 55);
+			const int w     = weaponNow(); // each weapon its own distance from the camera
+			const char* key = w == SMS_SPRAY_RIFLE ? "rifle_distance" : w == SMS_SPRAY_SMG ? "smg_distance"
+			                : w == SMS_SPRAY_BAZOOKA ? "bazooka_distance" : "fludd_distance";
+			const float d   = (float)setting(key, 55);
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
 			if (weapons)
@@ -467,7 +470,10 @@ struct FirstPerson : sms::Mod {
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
 		optionBool("fludd_view", "FLUDD in view, held like a gun (Allebale's builds)", true);
-		optionNumber("fludd_distance", "FLUDD in view distance", 55, 30, 120, 5);
+		optionNumber("fludd_distance", "FLUDD distance from the camera", 55, 30, 120, 5);
+		optionNumber("rifle_distance", "Rifle distance from the camera", 55, 30, 120, 5);
+		optionNumber("smg_distance", "Submachine gun distance from the camera", 55, 30, 120, 5);
+		optionNumber("bazooka_distance", "Bazooka distance from the camera", 55, 30, 120, 5);
 		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
