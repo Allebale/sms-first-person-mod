@@ -164,7 +164,8 @@ struct FirstPerson : sms::Mod {
 			const int w3 = weapons && thirdPersonWeapons() ? weaponNow() : 0;
 			if (w3) {
 				h->set_weapon(w3, (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
-				                      | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0) | SMS_SPRAY_THIRD_PERSON);
+				                      | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0) | SMS_SPRAY_THIRD_PERSON
+				                      | (setting("third_person_models", 0) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0));
 				sendWeaponStats(h);
 				thirdArmed = true;
 			} else if (thirdArmed) {
@@ -499,6 +500,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
 		optionBool("third_person_weapons", "FLUDD weapons in third person too", false);
+		optionBool("third_person_models", "Weapon models in third person (in place of FLUDD's nozzle)", false);
 		optionBool("normal_defeat", "FLUDD can defeat enemies", true);
 		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
