@@ -176,6 +176,7 @@ struct FirstPerson : sms::Mod {
 	}
 
 	bool zoomed   = false; // the rifle's zoom (D-pad up)
+	bool upWasDown = false, rightWasDown = false, leftWasDown = false;
 	float fovNow  = 0.0f;  // the view's field of view now (eased to the zoom and back)
 
 	// D-pad up: the rifle's zoom on and off, while it is chosen and in view (not when D-pad up is
@@ -186,7 +187,11 @@ struct FirstPerson : sms::Mod {
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
 		if (zoomed && (weaponNow() != SMS_SPRAY_RIFLE || !fluddHeld))
 			zoomed = false;
-		if (!(p.pressed & SMS_PAD_UP) || t == SMS_PAD_UP || weaponNow() != SMS_SPRAY_RIFLE || !fluddHeld)
+		// once a press: the moment D-pad up goes down (its "pressed" can come again while held)
+		const bool down  = (p.held & SMS_PAD_UP) != 0;
+		const bool fresh = down && !upWasDown;
+		upWasDown        = down;
+		if (!fresh || t == SMS_PAD_UP || weaponNow() != SMS_SPRAY_RIFLE || !fluddHeld)
 			return;
 		zoomed = !zoomed;
 		info("rifle zoom %s", zoomed ? "on" : "off");
@@ -231,9 +236,14 @@ struct FirstPerson : sms::Mod {
 		const int b      = setting("button", 0);
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
 		int step         = 0;
-		if ((p.pressed & SMS_PAD_RIGHT) && t != SMS_PAD_RIGHT)
+		// once a press each: the moment the button goes down
+		const bool right = (p.held & SMS_PAD_RIGHT) != 0, left = (p.held & SMS_PAD_LEFT) != 0;
+		const bool newRight = right && !rightWasDown, newLeft = left && !leftWasDown;
+		rightWasDown = right;
+		leftWasDown  = left;
+		if (newRight && t != SMS_PAD_RIGHT)
 			step = 1;
-		else if ((p.pressed & SMS_PAD_LEFT) && t != SMS_PAD_LEFT)
+		else if (newLeft && t != SMS_PAD_LEFT)
 			step = kWeaponCount - 1;
 		if (!step)
 			return;
