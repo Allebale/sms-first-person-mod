@@ -50,8 +50,11 @@ const SmsHeldFluddApi* heldFluddApi(const SmsApi& api)
 	                                                                                                              : nullptr;
 }
 // the spray weapons (set_weapon's SMS_SPRAY_*), D-pad left and right
-const char* const kWeaponNames[] = {"Normal spray", "Shotgun", "Rifle", "Bazooka"};
-const int kWeaponCount           = 4;
+// (the shotgun and rifle are one: a light R press fires the shotgun, R all the way in the rifle)
+const char* const kWeaponNames[] = {"Normal spray", "Shotgun and Rifle", "Bazooka"};
+const int kWeaponIds[]           = {SMS_SPRAY_NORMAL, SMS_SPRAY_SHOTGUN, SMS_SPRAY_BAZOOKA};
+const int kWeaponCount           = 3;
+const double kLightPressWait     = 0.12; // a light press waits this long: on its way all the way in, it is the rifle
 
 } // namespace
 
@@ -144,7 +147,7 @@ struct FirstPerson : sms::Mod {
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
 			if (weapons)
-				h->set_weapon(weaponNow(), (setting("weapons_defeat", 0) ? 1 : 0) | (rHeld ? 2 : 0));
+				h->set_weapon(weaponNow(), (setting("weapons_defeat", 0) ? 1 : 0) | (firing() ? 2 : 0));
 			sendWeaponStats(h);
 		} else if (fluddHeld) {
 			h->set(0, 0, 0, 0, 1, 0);
@@ -185,20 +188,28 @@ struct FirstPerson : sms::Mod {
 	{
 		const int b      = setting("button", 0);
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-		if (zoomed && (weaponNow() != SMS_SPRAY_RIFLE || !fluddHeld))
+		if (zoomed && (chosen() != SMS_SPRAY_SHOTGUN || !fluddHeld))
 			zoomed = false;
 		// once a press: the moment D-pad up goes down (its "pressed" can come again while held)
 		const bool down  = (p.held & SMS_PAD_UP) != 0;
 		const bool fresh = down && !upWasDown;
 		upWasDown        = down;
-		if (!fresh || t == SMS_PAD_UP || weaponNow() != SMS_SPRAY_RIFLE || !fluddHeld)
+		if (!fresh || t == SMS_PAD_UP || chosen() != SMS_SPRAY_SHOTGUN || !fluddHeld)
 			return;
 		zoomed = !zoomed;
 		info("rifle zoom %s", zoomed ? "on" : "off");
 	}
 
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
-	bool rHeld = false; // R, as the controller has it (kept from the game while a weapon fires)
+	bool rHeld = false;   // R, as the controller has it (kept from the game while a weapon fires)
+	bool rClick = false;  // R all the way in (its click): the rifle
+	double rSince = 0.0;  // when R was pressed
+
+	// the weapon chosen (SMS_SPRAY_*), whether or not it can fire now
+	int chosen() const { return weapon >= 0 && weapon < kWeaponCount ? kWeaponIds[weapon] : SMS_SPRAY_NORMAL; }
+
+	// R fires: all the way in at once, or a light press held a moment (not on its way all the way)
+	bool firing() const { return rHeld && (rClick || chosen() != SMS_SPRAY_SHOTGUN || core().time() - rSince >= kLightPressWait); }
 
 	bool sprayNozzleOut() const
 	{
@@ -210,13 +221,14 @@ struct FirstPerson : sms::Mod {
 	// the weapon that fires now: with weapons on, FLUDD held and its spray nozzle out
 	int weaponNow() const
 	{
-		if (!enabled || !viewIsOurs || !setting("fludd_view", 0) || !setting("weapons", 0) || weapon == 0 || holding())
+		if (!enabled || !viewIsOurs || !setting("fludd_view", 0) || !setting("weapons", 0) || chosen() == SMS_SPRAY_NORMAL
+		    || holding())
 			return 0;
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
 		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || m.current_nozzle != 0)
 			return 0;
-		return weapon;
+		return chosen() == SMS_SPRAY_SHOTGUN && rClick ? SMS_SPRAY_RIFLE : chosen();
 	}
 	bool toldWeapons = false;
 
@@ -518,7 +530,11 @@ struct FirstPerson : sms::Mod {
 			s.cstick_x = s.cstick_y = 0;
 			// a weapon chosen: R is the weapon's, not the game's (no stream, pump or its sound);
 			// the game fires the weapon each time it is ready while R is held
-			rHeld = (s.buttons & SMS_PAD_R) || s.trigger_r >= 60;
+			const bool rWas = rHeld;
+			rClick          = (s.buttons & SMS_PAD_R) != 0;
+			rHeld           = rClick || s.trigger_r >= 60;
+			if (rHeld && !rWas)
+				rSince = core().time();
 			if (weaponNow() != 0) {
 				s.buttons &= (uint16_t)~SMS_PAD_R;
 				s.trigger_r = 0;
