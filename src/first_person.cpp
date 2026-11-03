@@ -82,6 +82,7 @@ struct FirstPerson : sms::Mod {
 	void flip()
 	{
 		enabled = !enabled;
+		zoomed  = false;
 		haveYaw = false; // from the game camera again when it starts
 		if (!enabled) {
 			viewIsOurs = false;
@@ -174,6 +175,23 @@ struct FirstPerson : sms::Mod {
 		}
 	}
 
+	bool zoomed   = false; // the rifle's zoom (D-pad up)
+	float fovNow  = 0.0f;  // the view's field of view now (eased to the zoom and back)
+
+	// D-pad up: the rifle's zoom on and off, while it is chosen and in view (not when D-pad up is
+	// the controller's first person toggle)
+	void toggleZoom(const SmsPad& p)
+	{
+		const int b      = setting("button", 0);
+		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
+		if (zoomed && (weaponNow() != SMS_SPRAY_RIFLE || !fluddHeld))
+			zoomed = false;
+		if (!(p.pressed & SMS_PAD_UP) || t == SMS_PAD_UP || weaponNow() != SMS_SPRAY_RIFLE || !fluddHeld)
+			return;
+		zoomed = !zoomed;
+		info("rifle zoom %s", zoomed ? "on" : "off");
+	}
+
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
 	bool rHeld = false; // R, as the controller has it (kept from the game while a weapon fires)
 
@@ -220,6 +238,7 @@ struct FirstPerson : sms::Mod {
 		if (!step)
 			return;
 		weapon = (weapon + step) % kWeaponCount;
+		zoomed = false;
 		toast(kWeaponNames[weapon]);
 		info("weapon: %s", kWeaponNames[weapon]);
 	}
@@ -425,6 +444,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("rifle_defeat", "Rifle shots to defeat", 1, 1, 10, 1);
 		optionNumber("rifle_water", "Rifle water per shot", 12, 0, 200, 2);
 		optionNumber("rifle_hit", "Rifle hit size (percent)", 100, 0, 400, 10);
+		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
 		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 50, 1, 200, 5);
 		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
@@ -450,6 +470,7 @@ struct FirstPerson : sms::Mod {
 			if (bit && (pad(0).pressed & bit))
 				flip();
 			switchWeapon(pad(0));
+			toggleZoom(pad(0));
 		});
 
 		// the C-stick turns and tilts the view; L looks the way Mario faces
@@ -460,10 +481,12 @@ struct FirstPerson : sms::Mod {
 			const float dt = 1.0f / (t.ticks_per_second > 0 ? (float)t.ticks_per_second : 30.0f);
 			const float x  = setting("invert_x", 0) ? -p.cstick_x : p.cstick_x;
 			const float y  = setting("invert", 0) ? -p.cstick_y : p.cstick_y;
+			// zoomed, the view turns as much slower as it is narrower, so the aim stays steady
+			const float slow = fovNow > 0.0f && setting("fov", 60) > 0 ? fovNow / (float)setting("fov", 60) : 1.0f;
 			if (fabsf(x) > 0.2f) // right turns right: the yaw goes down
-				yaw -= x * (float)setting("turn_speed", 180) * dt;
+				yaw -= x * (float)setting("turn_speed", 180) * slow * dt;
 			if (fabsf(y) > 0.2f)
-				pitch = clampf(pitch + y * (float)setting("tilt_speed", 90) * dt, -75.0f, 75.0f);
+				pitch = clampf(pitch + y * (float)setting("tilt_speed", 90) * slow * dt, -75.0f, 75.0f);
 			aimFludd();
 			faceView(p);
 			if (p.pressed & SMS_PAD_L) {
@@ -574,7 +597,11 @@ struct FirstPerson : sms::Mod {
 			c.target.x   = c.position.x + dx * cp * 1000.0f;
 			c.target.y   = c.position.y + sp * 1000.0f;
 			c.target.z   = c.position.z + dz * cp * 1000.0f;
-			c.fovy       = (float)setting("fov", 60);
+			// the rifle's zoom: the view narrows (smoothly) while it is on
+			const float wide = (float)setting("fov", 60);
+			const float want = zoomed ? (float)setting("rifle_zoom", 25) : wide;
+			fovNow           = fovNow > 0.0f ? fovNow + (want - fovNow) * 0.25f : want;
+			c.fovy           = fovNow;
 			aimFludd(); // his model too, before it is drawn
 			showHead();
 			holdFludd();
