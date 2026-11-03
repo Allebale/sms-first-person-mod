@@ -163,6 +163,10 @@ struct FirstPerson : sms::Mod {
 	{
 		if (h->size < offsetof(SmsHeldFluddApi, set_weapon_stats) + sizeof(void*) || !h->set_weapon_stats)
 			return;
+		SmsSprayStats ns = SmsSprayStats(); // the normal spray: only its time to defeat
+		ns.size          = sizeof ns;
+		ns.every         = (float)setting("normal_defeat_time", 10) / 10.0f;
+		h->set_weapon_stats(SMS_SPRAY_NORMAL, &ns);
 		static const char* const kKeys[] = {"shotgun", "shotgun", "bazooka"}; // the Multi Shotgun's for its zoomed shot too
 		for (int w = SMS_SPRAY_SHOTGUN; w <= SMS_SPRAY_BAZOOKA; w++) {
 			const std::string k = kKeys[w - 1];
@@ -454,6 +458,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", false);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", false);
 		optionBool("normal_defeat", "Normal spray can defeat enemies", false);
+		optionNumber("normal_defeat_time", "Normal spray time to defeat (tenths of a second)", 10, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
 		optionNumber("shotgun_rate", "Multi Shotgun fire rate (tenths of a second)", 10, 1, 100, 1);
 		optionNumber("shotgun_push", "Multi Shotgun push (percent)", 100, 0, 400, 10);

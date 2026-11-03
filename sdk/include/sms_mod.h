@@ -1771,7 +1771,8 @@ typedef struct SmsHeldFluddApi {
 	   (Check size: SMS_API_HAS(held_fludd, set_weapon).) */
 	int (*set_weapon)(int weapon, int flags);
 	/* A weapon's numbers (SMS_SPRAY_SHOTGUN to SMS_SPRAY_BAZOOKA), in place of the game's own;
-	   NULL puts them back. Returns 1 if taken. (Check size: SMS_API_HAS(held_fludd, set_weapon_stats).) */
+	   NULL puts them back. For SMS_SPRAY_NORMAL only `every` is taken: the seconds of spraying one
+	   enemy (with SMS_SPRAY_DEFEAT_NORMAL) that defeat it. Returns 1 if taken. (Check size: SMS_API_HAS(held_fludd, set_weapon_stats).) */
 	int (*set_weapon_stats)(int weapon, const SmsSprayStats* stats);
 } SmsHeldFluddApi;
 
