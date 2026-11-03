@@ -451,8 +451,8 @@ struct FirstPerson : sms::Mod {
 		optionNumber("rifle_rate", "Rifle fire rate (tenths of a second)", 10, 1, 100, 1);
 		optionNumber("rifle_push", "Rifle push (percent)", 100, 0, 400, 10);
 		optionNumber("rifle_range", "Rifle range (percent)", 100, 10, 100, 10);
-		optionNumber("rifle_defeat", "Rifle shots to defeat", 1, 1, 10, 1);
-		optionNumber("rifle_water", "Rifle water per shot", 12, 0, 200, 2);
+		optionNumber("rifle_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
+		optionNumber("rifle_water", "Rifle water per shot", 24, 0, 200, 2);
 		optionNumber("rifle_hit", "Rifle hit size (percent)", 100, 0, 400, 10);
 		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
 		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 50, 1, 200, 5);
