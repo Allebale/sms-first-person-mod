@@ -14,6 +14,7 @@
 #include <sms_mod.hpp>
 
 #include <math.h>
+#include <string>
 #include <stddef.h>
 
 namespace {
@@ -143,6 +144,7 @@ struct FirstPerson : sms::Mod {
 			fluddHeld = true;
 			if (weapons)
 				h->set_weapon(weaponNow(), (setting("weapons_defeat", 0) ? 1 : 0) | (rHeld ? 2 : 0));
+			sendWeaponStats(h);
 		} else if (fluddHeld) {
 			h->set(0, 0, 0, 0, 1, 0);
 			if (weapons)
@@ -151,6 +153,27 @@ struct FirstPerson : sms::Mod {
 		}
 	}
 	bool toldNoHeld = false;
+	// The weapons' numbers from the menu, to the game (newer builds: set_weapon_stats).
+	void sendWeaponStats(const SmsHeldFluddApi* h)
+	{
+		if (h->size < offsetof(SmsHeldFluddApi, set_weapon_stats) + sizeof(void*) || !h->set_weapon_stats)
+			return;
+		static const char* const kKeys[] = {"shotgun", "rifle", "bazooka"};
+		for (int w = SMS_SPRAY_SHOTGUN; w <= SMS_SPRAY_BAZOOKA; w++) {
+			const std::string k = kKeys[w - 1];
+			SmsSprayStats st    = SmsSprayStats();
+			st.size             = sizeof st;
+			st.every            = (float)setting((k + "_rate").c_str(), 10) / 10.0f;
+			st.push             = (float)setting((k + "_push").c_str(), 100) / 100.0f;
+			st.range            = (float)setting((k + "_range").c_str(), 100) / 100.0f;
+			st.to_defeat        = setting((k + "_defeat").c_str(), 1);
+			st.water            = setting((k + "_water").c_str(), 12);
+			st.hit_size         = (float)setting("rifle_hit", 100) / 100.0f;
+			st.burst            = (float)setting("bazooka_burst", 100) / 100.0f;
+			h->set_weapon_stats(w, &st);
+		}
+	}
+
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
 	bool rHeld = false; // R, as the controller has it (kept from the game while a weapon fires)
 
@@ -390,6 +413,24 @@ struct FirstPerson : sms::Mod {
 		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", false);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", false);
+		// each weapon's numbers (the game's own by default)
+		optionNumber("shotgun_rate", "Shotgun fire rate (tenths of a second)", 10, 1, 100, 1);
+		optionNumber("shotgun_push", "Shotgun push (percent)", 100, 0, 400, 10);
+		optionNumber("shotgun_range", "Shotgun range (percent)", 100, 20, 400, 10);
+		optionNumber("shotgun_defeat", "Shotgun shots to defeat", 2, 1, 10, 1);
+		optionNumber("shotgun_water", "Shotgun water per shot", 24, 0, 200, 2);
+		optionNumber("rifle_rate", "Rifle fire rate (tenths of a second)", 10, 1, 100, 1);
+		optionNumber("rifle_push", "Rifle push (percent)", 100, 0, 400, 10);
+		optionNumber("rifle_range", "Rifle range (percent)", 100, 10, 100, 10);
+		optionNumber("rifle_defeat", "Rifle shots to defeat", 1, 1, 10, 1);
+		optionNumber("rifle_water", "Rifle water per shot", 12, 0, 200, 2);
+		optionNumber("rifle_hit", "Rifle hit size (percent)", 100, 0, 400, 10);
+		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 50, 1, 200, 5);
+		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
+		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
+		optionNumber("bazooka_defeat", "Bazooka shots to defeat", 1, 1, 10, 1);
+		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
+		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 100, 20, 400, 10);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 0);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {

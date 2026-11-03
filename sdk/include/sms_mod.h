@@ -1747,6 +1747,18 @@ typedef struct SmsFilesApi {
  * left out (SMS_EV_HIDE_PLAYER_MODEL, SMS_PLAYER_PART_FLUDD). Off when the mod
  * that set it unloads. */
 #define SMS_HELD_FLUDD_MAGIC 0x444C4648u /* "HFLD" */
+/* held_fludd->set_weapon_stats: a spray weapon's numbers. Set `size` to sizeof(SmsSprayStats). */
+typedef struct SmsSprayStats {
+	uint32_t size;
+	float every;     /* seconds between shots while R is held */
+	float push;      /* how hard it shoves an enemy, times the game's own (1) */
+	float range;     /* how far it reaches, times the game's own (1) */
+	int to_defeat;   /* shots to defeat an enemy (with SMS_SPRAY_DEFEAT) */
+	int water;       /* the tank's water a shot uses, in the stream's drops */
+	float hit_size;  /* the rifle's: how much bigger enemies count as to hit, times its own (1) */
+	float burst;     /* the bazooka's: its burst's size, times its own (1) */
+} SmsSprayStats;
+
 typedef struct SmsHeldFluddApi {
 	uint32_t size;
 	uint32_t magic; /* SMS_HELD_FLUDD_MAGIC */
@@ -1758,6 +1770,9 @@ typedef struct SmsHeldFluddApi {
 	   few hits, as a stomp. SMS_SPRAY_NORMAL is the game's own stream: it never shoves or defeats.
 	   (Check size: SMS_API_HAS(held_fludd, set_weapon).) */
 	int (*set_weapon)(int weapon, int flags);
+	/* A weapon's numbers (SMS_SPRAY_SHOTGUN to SMS_SPRAY_BAZOOKA), in place of the game's own;
+	   NULL puts them back. Returns 1 if taken. (Check size: SMS_API_HAS(held_fludd, set_weapon_stats).) */
+	int (*set_weapon_stats)(int weapon, const SmsSprayStats* stats);
 } SmsHeldFluddApi;
 
 enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPRAY_BAZOOKA = 3 };
