@@ -177,7 +177,8 @@ struct FirstPerson : sms::Mod {
 			st.range            = w == SMS_SPRAY_BAZOOKA ? (float)setting("bazooka_range", 100) / 100.0f : 1.0f; // the Rifle's has no end
 			st.to_defeat        = setting((k + "_defeat").c_str(), 1);
 			st.water            = setting((k + "_water").c_str(), 12);
-			st.hit_size         = 1.0f;
+			st.hit_size         = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_hit", 100) / 100.0f : 1.0f;
+			st.drop_size        = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_blob", 100) / 100.0f : 1.0f;
 			st.burst            = (float)setting("bazooka_burst", 100) / 100.0f;
 			st.lift             = (float)setting("bazooka_lift", 100) / 100.0f;
 			h->set_weapon_stats(w, &st);
@@ -466,6 +467,8 @@ struct FirstPerson : sms::Mod {
 		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
 		optionNumber("shotgun_water", "Rifle water per shot", 24, 0, 200, 2);
 		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
+		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 100, 20, 500, 10);
+		optionNumber("rifle_blob", "Rifle blob size (percent)", 100, 20, 400, 10);
 		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 50, 1, 200, 5);
 		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
