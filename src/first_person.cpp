@@ -174,6 +174,7 @@ struct FirstPerson : sms::Mod {
 			st.water            = setting((k + "_water").c_str(), 12);
 			st.hit_size         = 1.0f;
 			st.burst            = (float)setting("bazooka_burst", 100) / 100.0f;
+			st.hit_reach        = (float)setting("weapons_reach", 8000);
 			h->set_weapon_stats(w, &st);
 		}
 	}
@@ -452,6 +453,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", false);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", false);
+		optionNumber("weapons_reach", "FLUDD weapons hit range (units from Mario)", 8000, 2000, 60000, 1000);
 		// each weapon's numbers (the game's own by default)
 		optionNumber("shotgun_rate", "Multi Shotgun fire rate (tenths of a second)", 10, 1, 100, 1);
 		optionNumber("shotgun_push", "Multi Shotgun push (percent)", 100, 0, 400, 10);
