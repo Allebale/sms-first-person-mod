@@ -132,8 +132,8 @@ struct FirstPerson : sms::Mod {
 		const SmsHeldFluddApi* h = heldFluddApi(api());
 		// with weapons on, the gun shows while the spray nozzle is out, the normal spray too (not
 		// the hover, rocket or turbo nozzle, nor on Yoshi); without them, always
-		const bool shown = !setting("weapons", 0) || sprayNozzleOut();
-		const bool want  = enabled && viewIsOurs && setting("fludd_view", 0) && !holding() && shown;
+		const bool shown = !setting("weapons", 1) || sprayNozzleOut();
+		const bool want  = enabled && viewIsOurs && setting("fludd_view", 1) && !holding() && shown;
 		if (!h) {
 			if (want && !toldNoHeld) {
 				warn("this game cannot show FLUDD in view (it needs a Remastered or First Person beta build)");
@@ -147,8 +147,8 @@ struct FirstPerson : sms::Mod {
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
 			if (weapons)
-				h->set_weapon(weaponNow(), (setting("weapons_defeat", 0) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
-				                               | (setting("normal_defeat", 0) ? SMS_SPRAY_DEFEAT_NORMAL : 0));
+				h->set_weapon(weaponNow(), (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
+				                               | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0));
 			sendWeaponStats(h);
 		} else if (fluddHeld) {
 			h->set(0, 0, 0, 0, 1, 0);
@@ -165,7 +165,7 @@ struct FirstPerson : sms::Mod {
 			return;
 		SmsSprayStats ns = SmsSprayStats(); // the normal spray: only its time to defeat
 		ns.size          = sizeof ns;
-		ns.every         = (float)setting("normal_defeat_time", 10) / 10.0f;
+		ns.every         = (float)setting("normal_defeat_time", 4) / 10.0f;
 		h->set_weapon_stats(SMS_SPRAY_NORMAL, &ns);
 		static const char* const kKeys[] = {"shotgun", "shotgun", "bazooka"}; // the Rifle's (its keys kept from the shotgun's)
 		for (int w = SMS_SPRAY_SHOTGUN; w <= SMS_SPRAY_BAZOOKA; w++) {
@@ -177,10 +177,10 @@ struct FirstPerson : sms::Mod {
 			st.range            = w == SMS_SPRAY_BAZOOKA ? (float)setting("bazooka_range", 100) / 100.0f : 1.0f; // the Rifle's has no end
 			st.to_defeat        = setting((k + "_defeat").c_str(), 1);
 			st.water            = setting((k + "_water").c_str(), 12);
-			st.hit_size         = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_hit", 100) / 100.0f : 1.0f;
-			st.drop_size        = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_blob", 100) / 100.0f : 1.0f;
-			st.burst            = (float)setting("bazooka_burst", 100) / 100.0f;
-			st.lift             = (float)setting("bazooka_lift", 100) / 100.0f;
+			st.hit_size         = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_hit", 500) / 100.0f : 1.0f;
+			st.drop_size        = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_blob", 50) / 100.0f : 1.0f;
+			st.burst            = (float)setting("bazooka_burst", 150) / 100.0f;
+			st.lift             = (float)setting("bazooka_lift", 60) / 100.0f;
 			h->set_weapon_stats(w, &st);
 		}
 	}
@@ -226,7 +226,7 @@ struct FirstPerson : sms::Mod {
 	// the weapon that fires now: with weapons on, FLUDD held and its spray nozzle out
 	int weaponNow() const
 	{
-		if (!enabled || !viewIsOurs || !setting("fludd_view", 0) || !setting("weapons", 0) || chosen() == SMS_SPRAY_NORMAL
+		if (!enabled || !viewIsOurs || !setting("fludd_view", 1) || !setting("weapons", 1) || chosen() == SMS_SPRAY_NORMAL
 		    || holding())
 			return 0;
 		SmsPlayer m = SmsPlayer();
@@ -241,7 +241,7 @@ struct FirstPerson : sms::Mod {
 	// controller toggle uses)
 	void switchWeapon(const SmsPad& p)
 	{
-		if (!enabled || !viewIsOurs || !setting("fludd_view", 0) || !setting("weapons", 0))
+		if (!enabled || !viewIsOurs || !setting("fludd_view", 1) || !setting("weapons", 1))
 			return;
 		if (!toldWeapons) {
 			const SmsHeldFluddApi* h = heldFluddApi(api());
@@ -274,7 +274,7 @@ struct FirstPerson : sms::Mod {
 	// underwater nozzles, off Yoshi): where its water goes
 	void drawCrosshair()
 	{
-		if (!fluddHeld || !viewIsOurs || !setting("crosshair", 0))
+		if (!fluddHeld || !viewIsOurs || !setting("crosshair", 1))
 			return;
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
@@ -283,7 +283,7 @@ struct FirstPerson : sms::Mod {
 		float w = 0, h = 0;
 		draw().canvas(&w, &h);
 		const float x = w * 0.5f, y = h * 0.5f, r = h * 0.009f;
-		const int ci     = setting("crosshair_color", 0);
+		const int ci     = setting("crosshair_color", 8);
 		const SmsColor c = kCrossColors[ci >= 0 && ci < kCrossCount ? ci : 0];
 		// an outline round it, dark (light round a black one), so it shows on any ground
 		const SmsColor edge = ci == kCrossCount - 1 ? SMS_RGBA(255, 255, 255, 120) : SMS_RGBA(0, 0, 0, 110);
@@ -445,38 +445,38 @@ struct FirstPerson : sms::Mod {
 	{
 		toggleKey = bindKey("toggle", "V");
 		optionChoice("button", "Controller toggle button", std::vector<const char*>(kButtons, kButtons + 5), 0);
-		optionNumber("fov", "Field of view (degrees, up and down)", 60, 40, 100, 5);
-		optionNumber("eye_height", "Eye height", 130, 60, 200, 5);
-		optionNumber("turn_speed", "C-stick turn speed", 180, 30, 480, 15);
-		optionNumber("tilt_speed", "C-stick tilt speed", 90, 0, 240, 10);
-		optionBool("invert_x", "Invert left and right", false);
-		optionBool("invert", "Invert up and down", false);
+		optionNumber("fov", "Field of view (degrees, up and down)", 80, 40, 100, 5);
+		optionNumber("eye_height", "Eye height", 120, 60, 200, 5);
+		optionNumber("turn_speed", "C-stick turn speed", 210, 30, 480, 15);
+		optionNumber("tilt_speed", "C-stick tilt speed", 200, 0, 240, 10);
+		optionBool("invert_x", "Invert left and right", true);
+		optionBool("invert", "Invert up and down", true);
 		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
-		optionBool("fludd_view", "FLUDD in view, held like a gun (Allebale's builds)", false);
+		optionBool("fludd_view", "FLUDD in view, held like a gun (Allebale's builds)", true);
 		optionNumber("fludd_distance", "FLUDD in view distance", 55, 30, 120, 5);
-		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
-		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", false);
-		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", false);
-		optionBool("normal_defeat", "Normal spray can defeat enemies", false);
-		optionNumber("normal_defeat_time", "Normal spray time to defeat (tenths of a second)", 10, 1, 100, 1);
+		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
+		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
+		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
+		optionBool("normal_defeat", "Normal spray can defeat enemies", true);
+		optionNumber("normal_defeat_time", "Normal spray time to defeat (tenths of a second)", 4, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
-		optionNumber("shotgun_rate", "Rifle fire rate (tenths of a second)", 10, 1, 100, 1);
-		optionNumber("shotgun_push", "Rifle push (percent)", 100, 0, 400, 10);
+		optionNumber("shotgun_rate", "Rifle fire rate (tenths of a second)", 8, 1, 100, 1);
+		optionNumber("shotgun_push", "Rifle push (percent)", 300, 0, 400, 10);
 		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
 		optionNumber("shotgun_water", "Rifle water per shot", 24, 0, 200, 2);
 		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
-		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 100, 20, 500, 10);
-		optionNumber("rifle_blob", "Rifle blob size (percent)", 100, 20, 400, 10);
-		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 50, 1, 200, 5);
+		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
+		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
+		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 10, 1, 200, 5);
 		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
-		optionNumber("bazooka_defeat", "Bazooka shots to defeat", 1, 1, 10, 1);
+		optionNumber("bazooka_defeat", "Bazooka shots to defeat", 3, 1, 10, 1);
 		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
-		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 100, 20, 400, 10);
-		optionNumber("bazooka_lift", "Bazooka air height (percent)", 100, 0, 400, 10);
-		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 0);
+		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
+		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
+		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
 			if (k.scancode != toggleKey)
@@ -504,14 +504,14 @@ struct FirstPerson : sms::Mod {
 				return;
 			const SmsPad p = pad(0);
 			const float dt = 1.0f / (t.ticks_per_second > 0 ? (float)t.ticks_per_second : 30.0f);
-			const float x  = setting("invert_x", 0) ? -p.cstick_x : p.cstick_x;
-			const float y  = setting("invert", 0) ? -p.cstick_y : p.cstick_y;
+			const float x  = setting("invert_x", 1) ? -p.cstick_x : p.cstick_x;
+			const float y  = setting("invert", 1) ? -p.cstick_y : p.cstick_y;
 			// zoomed, the view turns as much slower as it is narrower, so the aim stays steady
-			const float slow = fovNow > 0.0f && setting("fov", 60) > 0 ? fovNow / (float)setting("fov", 60) : 1.0f;
+			const float slow = fovNow > 0.0f && setting("fov", 80) > 0 ? fovNow / (float)setting("fov", 80) : 1.0f;
 			if (fabsf(x) > 0.2f) // right turns right: the yaw goes down
-				yaw -= x * (float)setting("turn_speed", 180) * slow * dt;
+				yaw -= x * (float)setting("turn_speed", 210) * slow * dt;
 			if (fabsf(y) > 0.2f)
-				pitch = clampf(pitch + y * (float)setting("tilt_speed", 90) * slow * dt, -75.0f, 75.0f);
+				pitch = clampf(pitch + y * (float)setting("tilt_speed", 200) * slow * dt, -75.0f, 75.0f);
 			aimFludd();
 			faceView(p);
 			if (p.pressed & SMS_PAD_L) {
@@ -609,7 +609,7 @@ struct FirstPerson : sms::Mod {
 			const float dx = sinf(yaw * kPi / 180.0f), dz = cosf(yaw * kPi / 180.0f);
 
 			// the eyes: above his feet (higher on Yoshi), a little smoothed up and down
-			float height  = (float)setting("eye_height", 130) + (p.on_yoshi ? 80.0f : 0.0f);
+			float height  = (float)setting("eye_height", 120) + (p.on_yoshi ? 80.0f : 0.0f);
 			const float y = p.position.y + height;
 			eyeY          = haveEye ? eyeY + (y - eyeY) * 0.5f : y;
 			haveEye       = true;
@@ -623,7 +623,7 @@ struct FirstPerson : sms::Mod {
 			c.target.y   = c.position.y + sp * 1000.0f;
 			c.target.z   = c.position.z + dz * cp * 1000.0f;
 			// the rifle's zoom: the view narrows (smoothly) while it is on
-			const float wide = (float)setting("fov", 60);
+			const float wide = (float)setting("fov", 80);
 			const float want = zoomed ? (float)setting("rifle_zoom", 25) : wide;
 			fovNow           = fovNow > 0.0f ? fovNow + (want - fovNow) * 0.25f : want;
 			c.fovy           = fovNow;
