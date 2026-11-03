@@ -500,7 +500,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
 		optionBool("third_person_weapons", "FLUDD weapons in third person too", false);
-		optionBool("third_person_models", "Weapon models in third person (in place of FLUDD's nozzle)", false);
+		optionBool("third_person_models", "Weapon packs in place of FLUDD in third person", false);
 		optionBool("normal_defeat", "FLUDD can defeat enemies", true);
 		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
