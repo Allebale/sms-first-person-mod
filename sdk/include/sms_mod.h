@@ -1778,7 +1778,7 @@ typedef struct SmsHeldFluddApi {
 	int (*set_weapon_stats)(int weapon, const SmsSprayStats* stats);
 } SmsHeldFluddApi;
 
-enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPRAY_BAZOOKA = 3 };
+enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPRAY_BAZOOKA = 3, SMS_SPRAY_SMG = 4 };
 #define SMS_SPRAY_DEFEAT 1 /* set_weapon's flags: a weapon may defeat enemies */
 #define SMS_SPRAY_DEFEAT_NORMAL 4 /* set_weapon's flags: the normal spray may defeat enemies too (a short burst on one) */
 

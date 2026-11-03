@@ -52,9 +52,9 @@ const SmsHeldFluddApi* heldFluddApi(const SmsApi& api)
 // the spray weapons (set_weapon's SMS_SPRAY_*), D-pad left and right
 // (the Rifle: one big, fast blob of water, dead straight with no end to its reach; its zoom on
 // D-pad up)
-const char* const kWeaponNames[] = {"Normal spray", "Rifle", "Bazooka"};
-const int kWeaponIds[]           = {SMS_SPRAY_NORMAL, SMS_SPRAY_RIFLE, SMS_SPRAY_BAZOOKA};
-const int kWeaponCount           = 3;
+const char* const kWeaponNames[] = {"FLUDD", "Rifle", "Submachine gun", "Bazooka"};
+const int kWeaponIds[]           = {SMS_SPRAY_NORMAL, SMS_SPRAY_RIFLE, SMS_SPRAY_SMG, SMS_SPRAY_BAZOOKA};
+const int kWeaponCount           = 4;
 
 } // namespace
 
@@ -183,6 +183,18 @@ struct FirstPerson : sms::Mod {
 			st.lift             = (float)setting("bazooka_lift", 60) / 100.0f;
 			h->set_weapon_stats(w, &st);
 		}
+		SmsSprayStats sm = SmsSprayStats(); // the Submachine gun: the Rifle's kind of shot, faster and softer
+		sm.size          = sizeof sm;
+		sm.every         = (float)setting("smg_rate", 15) / 100.0f;
+		sm.push          = (float)setting("smg_push", 150) / 100.0f;
+		sm.range         = 1.0f;
+		sm.to_defeat     = setting("smg_defeat", 2);
+		sm.water         = setting("smg_water", 24);
+		sm.hit_size      = (float)setting("smg_hit", 500) / 100.0f;
+		sm.drop_size     = (float)setting("smg_blob", 50) / 100.0f;
+		sm.burst         = 1.0f;
+		sm.lift          = 0.0f;
+		h->set_weapon_stats(SMS_SPRAY_SMG, &sm);
 	}
 
 	bool zoomed   = false; // the rifle's zoom (D-pad up)
@@ -459,8 +471,8 @@ struct FirstPerson : sms::Mod {
 		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
-		optionBool("normal_defeat", "Normal spray can defeat enemies", true);
-		optionNumber("normal_defeat_time", "Normal spray time to defeat (tenths of a second)", 4, 1, 100, 1);
+		optionBool("normal_defeat", "FLUDD can defeat enemies", true);
+		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
 		optionNumber("shotgun_rate", "Rifle fire rate (tenths of a second)", 8, 1, 100, 1);
 		optionNumber("shotgun_push", "Rifle push (percent)", 300, 0, 400, 10);
@@ -469,6 +481,12 @@ struct FirstPerson : sms::Mod {
 		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
 		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
 		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
+		optionNumber("smg_rate", "Submachine gun fire rate (hundredths of a second)", 15, 1, 100, 1);
+		optionNumber("smg_push", "Submachine gun push (percent)", 150, 0, 400, 10);
+		optionNumber("smg_defeat", "Submachine gun shots to defeat", 2, 1, 10, 1);
+		optionNumber("smg_water", "Submachine gun water per shot", 24, 0, 200, 2);
+		optionNumber("smg_hit", "Submachine gun hit size (percent)", 500, 20, 500, 10);
+		optionNumber("smg_blob", "Submachine gun blob size (percent)", 50, 20, 400, 10);
 		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 10, 1, 200, 5);
 		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);

@@ -9,7 +9,7 @@ Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed 
 ### first-person-beta (Allebale's fork, not in the official SDK)
 
 - `api->held_fludd` (`SmsHeldFluddApi`; `SMS_API_HAS(api, held_fludd)` and its `magic`): FLUDD held in front of the view like a gun, for a first-person camera; the water comes out of its nozzle there, towards the middle of the view.
-- `held_fludd->set_weapon(weapon, flags)` (`SMS_SPRAY_*`): the held FLUDD's spray fires as a shotgun, rifle or bazooka of water; their drops shove small enemies, and with `SMS_SPRAY_DEFEAT` defeat them after a few hits. The normal spray never does either.
+- `held_fludd->set_weapon(weapon, flags)` (`SMS_SPRAY_*`): the held FLUDD's spray fires as a shotgun, rifle, submachine gun or bazooka of water; their drops shove small enemies, and with `SMS_SPRAY_DEFEAT` defeat them after a few hits. The normal spray never does either.
 - `held_fludd->set_weapon_stats(weapon, stats)` (`SmsSprayStats`): a spray weapon's fire rate, push, range, shots to defeat, water per shot, the rifle's hit size and the bazooka's burst, as a mod sets them.
 
 ### 1.6.0-beta.2
