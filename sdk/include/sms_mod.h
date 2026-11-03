@@ -1759,6 +1759,7 @@ typedef struct SmsSprayStats {
 	float burst;     /* the bazooka's: its burst's size, times its own (1) */
 	float lift;      /* the bazooka's: how high it throws enemies, times its own (1) */
 	float drop_size; /* the size of its drops, times its own (1) */
+	float self_jump; /* the bazooka's: how hard its burst throws Mario (a rocket jump), times its own (1); 0 not */
 } SmsSprayStats;
 
 typedef struct SmsHeldFluddApi {

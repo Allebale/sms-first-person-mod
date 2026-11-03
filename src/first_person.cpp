@@ -200,6 +200,7 @@ struct FirstPerson : sms::Mod {
 			st.drop_size        = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_blob", 50) / 100.0f : 1.0f;
 			st.burst            = (float)setting("bazooka_burst", 150) / 100.0f;
 			st.lift             = (float)setting("bazooka_lift", 60) / 100.0f;
+			st.self_jump        = w == SMS_SPRAY_BAZOOKA && setting("rocket_jump", 0) ? (float)setting("rocket_jump_power", 100) / 100.0f : 0.0f;
 			h->set_weapon_stats(w, &st);
 		}
 		SmsSprayStats sm = SmsSprayStats(); // the Submachine gun: the Rifle's kind of shot, faster and softer
@@ -524,6 +525,8 @@ struct FirstPerson : sms::Mod {
 		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
 		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
 		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
+		optionBool("rocket_jump", "Bazooka rocket jumps (shoot near your feet to fly)", false);
+		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 100, 10, 300, 10);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {

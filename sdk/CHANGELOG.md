@@ -10,6 +10,7 @@ Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed 
 
 - `api->held_fludd` (`SmsHeldFluddApi`; `SMS_API_HAS(api, held_fludd)` and its `magic`): FLUDD held in front of the view like a gun, for a first-person camera; the water comes out of its nozzle there, towards the middle of the view.
 - `held_fludd->set_weapon(weapon, flags)` (`SMS_SPRAY_*`): the held FLUDD's spray fires as a shotgun, rifle, submachine gun or bazooka of water; their drops shove small enemies, and with `SMS_SPRAY_DEFEAT` defeat them after a few hits. The normal spray never does either.
+- `SmsSprayStats.self_jump`: the bazooka's rocket jump, its burst throwing Mario away from it (0, and from mods built before it, none).
 - `SMS_SPRAY_THIRD_PERSON` in `set_weapon`'s flags: the weapon fires in third person too, with FLUDD on his back, the way Mario faces (aimed at a small enemy ahead). FLUDD's nozzle stays out while R is held and pumps as each shot goes.
 - `SMS_SPRAY_THIRD_PERSON_MODEL` in `set_weapon`'s flags: in third person all of FLUDD drawn as a pack of the weapon's colours with the weapon on it over his shoulder.
 - `held_fludd->set_weapon_stats(weapon, stats)` (`SmsSprayStats`): a spray weapon's fire rate, push, range, shots to defeat, water per shot, the rifle's hit size and the bazooka's burst, as a mod sets them.
