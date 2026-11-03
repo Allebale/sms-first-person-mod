@@ -147,7 +147,8 @@ struct FirstPerson : sms::Mod {
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
 			if (weapons)
-				h->set_weapon(weaponNow(), (setting("weapons_defeat", 0) ? 1 : 0) | (firing() ? 2 : 0));
+				h->set_weapon(weaponNow(), (setting("weapons_defeat", 0) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
+				                               | (setting("normal_defeat", 0) ? SMS_SPRAY_DEFEAT_NORMAL : 0));
 			sendWeaponStats(h);
 		} else if (fluddHeld) {
 			h->set(0, 0, 0, 0, 1, 0);
@@ -452,6 +453,7 @@ struct FirstPerson : sms::Mod {
 		optionBool("crosshair", "Crosshair while FLUDD is in view", false);
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", false);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", false);
+		optionBool("normal_defeat", "Normal spray can defeat enemies", false);
 		// each weapon's numbers (the game's own by default)
 		optionNumber("shotgun_rate", "Multi Shotgun fire rate (tenths of a second)", 10, 1, 100, 1);
 		optionNumber("shotgun_push", "Multi Shotgun push (percent)", 100, 0, 400, 10);
