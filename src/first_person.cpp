@@ -179,6 +179,7 @@ struct FirstPerson : sms::Mod {
 			st.water            = setting((k + "_water").c_str(), 12);
 			st.hit_size         = 1.0f;
 			st.burst            = (float)setting("bazooka_burst", 100) / 100.0f;
+			st.lift             = (float)setting("bazooka_lift", 100) / 100.0f;
 			h->set_weapon_stats(w, &st);
 		}
 	}
@@ -471,6 +472,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("bazooka_defeat", "Bazooka shots to defeat", 1, 1, 10, 1);
 		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
 		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 100, 20, 400, 10);
+		optionNumber("bazooka_lift", "Bazooka air height (percent)", 100, 0, 400, 10);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 0);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {

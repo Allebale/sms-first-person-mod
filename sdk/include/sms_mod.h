@@ -1757,6 +1757,7 @@ typedef struct SmsSprayStats {
 	int water;       /* the tank's water a shot uses, in the stream's drops */
 	float hit_size;  /* the rifle's: how much bigger enemies count as to hit, times its own (1) */
 	float burst;     /* the bazooka's: its burst's size, times its own (1) */
+	float lift;      /* the bazooka's: how high it throws enemies, times its own (1) */
 } SmsSprayStats;
 
 typedef struct SmsHeldFluddApi {
