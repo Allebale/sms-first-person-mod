@@ -222,23 +222,28 @@ struct FirstPerson : sms::Mod {
 	bool zoomed   = false; // the rifle's zoom (D-pad up)
 	bool upWasDown = false, rightWasDown = false, leftWasDown = false;
 	float fovNow  = 0.0f;  // the view's field of view now (eased to the zoom and back)
+	float thirdFov = 0.0f; // in third person, the game camera's while the rifle's zoom is on or easing back (0 none)
 
-	// D-pad up: the zoom on and off in first person, whatever is chosen (not when D-pad up is the
-	// controller's first person toggle)
+	// D-pad up: the rifle's zoom on and off while it is chosen, in first person (FLUDD in view) or in
+	// third person with its weapons (not when D-pad up is the controller's first person toggle)
+	bool canZoom() const
+	{
+		return chosen() == SMS_SPRAY_RIFLE && (fluddHeld || (thirdPersonWeapons() && weaponNow() == SMS_SPRAY_RIFLE));
+	}
 	void toggleZoom(const SmsPad& p)
 	{
 		const int b      = setting("button", 0);
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-		if (zoomed && !(enabled && viewIsOurs))
+		if (zoomed && !canZoom())
 			zoomed = false;
 		// once a press: the moment D-pad up goes down (its "pressed" can come again while held)
 		const bool down  = (p.held & SMS_PAD_UP) != 0;
 		const bool fresh = down && !upWasDown;
 		upWasDown        = down;
-		if (!fresh || t == SMS_PAD_UP || !(enabled && viewIsOurs))
+		if (!fresh || t == SMS_PAD_UP || !canZoom())
 			return;
 		zoomed = !zoomed;
-		info("zoom %s", zoomed ? "on" : "off");
+		info("rifle zoom %s", zoomed ? "on" : "off");
 	}
 
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
@@ -548,7 +553,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("shotgun_push", "Rifle push (percent)", 300, 0, 400, 10);
 		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
 		optionNumber("shotgun_water", "Rifle water per shot", 24, 0, 200, 2);
-		optionNumber("rifle_zoom", "Zoom, D-pad up in first person (field of view)", 25, 5, 60, 5);
+		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
 		optionBool("rifle_scope", "Rifle sniper scope while zoomed", false);
 		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
 		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
@@ -688,8 +693,18 @@ struct FirstPerson : sms::Mod {
 				aimFludd(); // lets his body go, if it was turned
 				showHead();
 				holdFludd();
+				// third person: the rifle's zoom narrows the game's own camera, and back
+				if (zoomed || thirdFov > 0.0f) {
+					const float want = zoomed ? (float)setting("rifle_zoom", 25) : c.fovy;
+					thirdFov         = thirdFov > 0.0f ? thirdFov + (want - thirdFov) * 0.25f : c.fovy;
+					if (!zoomed && fabsf(thirdFov - c.fovy) < 0.5f)
+						thirdFov = 0.0f; // all the way back: the game's own again
+					else
+						c.fovy = thirdFov;
+				}
 				return;
 			}
+			thirdFov = 0.0f;
 			viewIsOurs = true;
 			SmsPlayer p = SmsPlayer();
 			p.size      = sizeof p;
