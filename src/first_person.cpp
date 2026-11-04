@@ -159,9 +159,20 @@ struct FirstPerson : sms::Mod {
 	}
 	float fovNow        = 0.0f;  // the view's field of view now (eased to a zoom and back)
 	bool flippedForZoom = false; // first person switched on for a zoom from third person
+	bool skipZoom       = false; // switched by hand during one: that one left alone until it ends
+	void flipByHand()
+	{
+		flip();
+		skipZoom       = flippedForZoom || (weaponsState().zoom_flags & SMS_ZOOM_FIRST_PERSON) != 0;
+		flippedForZoom = false;
+	}
 	void zoomFirstPerson()
 	{
 		const bool wants = (weaponsState().zoom_flags & SMS_ZOOM_FIRST_PERSON) != 0;
+		if (skipZoom) {
+			skipZoom = wants;
+			return;
+		}
 		if (wants && !enabled) {
 			flip(true);
 			flippedForZoom = true;
@@ -383,10 +394,8 @@ struct FirstPerson : sms::Mod {
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
 			if (k.scancode != toggleKey)
 				return SMS_CONTINUE;
-			if (k.down && !k.repeat) {
-				flip();
-				flippedForZoom = false;
-			}
+			if (k.down && !k.repeat)
+				flipByHand();
 			return SMS_CANCEL;
 		});
 
@@ -396,10 +405,8 @@ struct FirstPerson : sms::Mod {
 				return;
 			const int b = setting("button", 0);
 			const uint16_t bit = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-			if (bit && (pad(0).pressed & bit)) {
-				flip();
-				flippedForZoom = false;
-			}
+			if (bit && (pad(0).pressed & bit))
+				flipByHand();
 			zoomFirstPerson(); // a zoom from third person (the FLUDD Weapons mod)
 		});
 
