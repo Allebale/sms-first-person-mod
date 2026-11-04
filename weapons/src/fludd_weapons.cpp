@@ -57,6 +57,7 @@ struct FluddWeapons : sms::Mod {
 	bool upWasDown = false, rightWasDown = false, leftWasDown = false;
 	bool told      = false, toldNone = false;
 	int lastSet    = -1; // the weapon and flags last set, -1 none
+	float lastFar  = 1.0f;
 	double toastUntil = 0;
 	const char* toastText = "";
 
@@ -175,6 +176,10 @@ struct FluddWeapons : sms::Mod {
 			return;
 		const int r       = setting("long_range", 0);
 		const float far   = kRangeScale[r >= 0 && r < kRangeCount ? r : 0];
+		if (far != lastFar) {
+			info("long range: %s (%.1f times as far)", kRanges[r >= 0 && r < kRangeCount ? r : 0], far);
+			lastFar = far;
+		}
 		SmsSprayStats ns  = SmsSprayStats(); // FLUDD's own spray: only its time to defeat
 		ns.size           = sizeof ns;
 		ns.every          = (float)setting("normal_defeat_time", 4) / 10.0f;
