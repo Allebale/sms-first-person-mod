@@ -222,26 +222,43 @@ struct FirstPerson : sms::Mod {
 	bool zoomed   = false; // the rifle's zoom (D-pad up)
 	bool upWasDown = false, rightWasDown = false, leftWasDown = false;
 	float fovNow  = 0.0f;  // the view's field of view now (eased to the zoom and back)
-	float thirdFov = 0.0f;
-	float thirdBase = 50.0f; // and the game camera's own // in third person, the game camera's while the rifle's zoom is on or easing back (0 none)
 
-	// D-pad up: the rifle's zoom on and off while it is chosen, in first person (FLUDD in view) or in
-	// third person with its weapons (not when D-pad up is the controller's first person toggle)
+	// D-pad up: the rifle's zoom on and off while it is chosen in first person (FLUDD in view); in
+	// third person with its weapons, into first person zoomed and back out again (not when D-pad up
+	// is the controller's first person toggle)
+	bool zoomFromThird = false; // first person and the zoom on from third person by D-pad up
 	bool canZoom() const
 	{
-		return chosen() == SMS_SPRAY_RIFLE && (fluddHeld || (thirdPersonWeapons() && weaponNow() == SMS_SPRAY_RIFLE));
+		return chosen() == SMS_SPRAY_RIFLE && fluddHeld;
 	}
 	void toggleZoom(const SmsPad& p)
 	{
 		const int b      = setting("button", 0);
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-		if (zoomed && !canZoom())
+		if (zoomFromThird && !enabled)
+			zoomFromThird = false; // left first person some other way
+		if (zoomed && !canZoom() && !zoomFromThird)
 			zoomed = false;
 		// once a press: the moment D-pad up goes down (its "pressed" can come again while held)
 		const bool down  = (p.held & SMS_PAD_UP) != 0;
 		const bool fresh = down && !upWasDown;
 		upWasDown        = down;
-		if (!fresh || t == SMS_PAD_UP || !canZoom())
+		if (!fresh || t == SMS_PAD_UP)
+			return;
+		if (zoomFromThird) { // zoomed from third person: back to it
+			zoomFromThird = false;
+			flip(); // (the zoom off with it)
+			info("rifle zoom off, back to third person");
+			return;
+		}
+		if (!enabled && chosen() == SMS_SPRAY_RIFLE && thirdPersonWeapons() && weaponNow() == SMS_SPRAY_RIFLE) {
+			flip(); // third person with the rifle: into first person, zoomed (and its scope)
+			zoomed        = true;
+			zoomFromThird = true;
+			info("rifle zoom on, from third person");
+			return;
+		}
+		if (!canZoom())
 			return;
 		zoomed = !zoomed;
 		info("rifle zoom %s", zoomed ? "on" : "off");
@@ -322,12 +339,10 @@ struct FirstPerson : sms::Mod {
 	// cross hairs with marks along them and a red dot in the middle, coming in with the zoom
 	bool drawScope()
 	{
-		if (!zoomed || !canZoom() || !setting("rifle_scope", 0))
+		if (!zoomed || !canZoom() || !viewIsOurs || !setting("rifle_scope", 0))
 			return false;
-		const bool first = fluddHeld && viewIsOurs; // else third person, the game's own camera narrowed
-		const float wide = first ? (float)setting("fov", 80) : thirdBase, zoom = (float)setting("rifle_zoom", 25);
-		const float now  = first ? fovNow : thirdFov;
-		float in         = wide - zoom > 0.5f ? (wide - now) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
+		const float wide = (float)setting("fov", 80), zoom = (float)setting("rifle_zoom", 25);
+		float in         = wide - zoom > 0.5f ? (wide - fovNow) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
 		in               = in < 0.0f ? 0.0f : in > 1.0f ? 1.0f : in;
 		if (in < 0.05f)
 			return false;
@@ -696,19 +711,8 @@ struct FirstPerson : sms::Mod {
 				aimFludd(); // lets his body go, if it was turned
 				showHead();
 				holdFludd();
-				// third person: the rifle's zoom narrows the game's own camera, and back
-				thirdBase = c.fovy;
-				if (zoomed || thirdFov > 0.0f) {
-					const float want = zoomed ? (float)setting("rifle_zoom", 25) : c.fovy;
-					thirdFov         = thirdFov > 0.0f ? thirdFov + (want - thirdFov) * 0.25f : c.fovy;
-					if (!zoomed && fabsf(thirdFov - c.fovy) < 0.5f)
-						thirdFov = 0.0f; // all the way back: the game's own again
-					else
-						c.fovy = thirdFov;
-				}
 				return;
 			}
-			thirdFov = 0.0f;
 			viewIsOurs = true;
 			SmsPlayer p = SmsPlayer();
 			p.size      = sizeof p;
