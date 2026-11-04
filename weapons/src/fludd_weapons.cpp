@@ -213,7 +213,7 @@ struct FluddWeapons : sms::Mod {
 		SmsSprayStats sm = SmsSprayStats(); // the Submachine gun: the Rifle's kind of shot, faster and softer
 		sm.size          = sizeof sm;
 		sm.every         = (float)setting("smg_rate", 15) / 100.0f;
-		sm.push          = (float)setting("smg_push", 0) / 100.0f;
+		sm.push          = (float)setting("smg_push", 30) / 100.0f;
 		sm.range         = 1.0f;
 		sm.to_defeat     = setting("smg_defeat", 3);
 		sm.water         = setting("smg_water", 16);
@@ -346,7 +346,7 @@ struct FluddWeapons : sms::Mod {
 		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
 		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
 		optionNumber("smg_rate", "Submachine gun fire rate (hundredths of a second)", 15, 1, 100, 1);
-		optionNumber("smg_push", "Submachine gun push (percent)", 0, 0, 400, 10);
+		optionNumber("smg_push", "Submachine gun push (percent, under 100 weaker than FLUDD)", 30, 0, 400, 10);
 		optionNumber("smg_defeat", "Submachine gun shots to defeat", 3, 1, 10, 1);
 		optionNumber("smg_water", "Submachine gun water per shot", 16, 0, 200, 2);
 		optionNumber("smg_hit", "Submachine gun hit size (percent)", 500, 20, 500, 10);
