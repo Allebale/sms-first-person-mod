@@ -310,6 +310,43 @@ struct FirstPerson : sms::Mod {
 
 	// A small crosshair in the middle of the view while FLUDD is held there (the spray and
 	// underwater nozzles, off Yoshi): where its water goes
+	// The rifle's sniper scope while it is zoomed (its option): black round a round sight, thin
+	// cross hairs with marks along them and a red dot in the middle, coming in with the zoom
+	bool drawScope()
+	{
+		if (!zoomed || !fluddHeld || !viewIsOurs || !setting("rifle_scope", 0))
+			return false;
+		const float wide = (float)setting("fov", 80), zoom = (float)setting("rifle_zoom", 25);
+		float in         = wide - zoom > 0.5f ? (wide - fovNow) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
+		in               = in < 0.0f ? 0.0f : in > 1.0f ? 1.0f : in;
+		if (in < 0.05f)
+			return false;
+		float w = 0, h = 0;
+		draw().canvas(&w, &h);
+		const float x = w * 0.5f, y = h * 0.5f, rad = h * 0.46f;
+		const uint8_t a = (uint8_t)(255.0f * in);
+		const float out = sqrtf(x * x + y * y) + 4.0f; // past the corners
+		draw().circle_outline(x, y, (rad + out) * 0.5f, out - rad, SMS_RGBA(0, 0, 0, a)); // all round the sight
+		draw().circle_outline(x, y, rad, h * 0.012f, SMS_RGBA(20, 20, 20, a));          // its rim
+		const SmsColor hair = SMS_RGBA(0, 0, 0, (uint8_t)(230.0f * in));
+		const float t = h * 0.0025f, gap = h * 0.02f;
+		draw().line(x - rad, y, x - gap, y, t, hair); // the cross hairs, open in the middle
+		draw().line(x + gap, y, x + rad, y, t, hair);
+		draw().line(x, y - rad, x, y - gap, t, hair);
+		draw().line(x, y + gap, x, y + rad, t, hair);
+		draw().line(x - rad, y, x - rad * 0.55f, y, t * 3.0f, hair); // thicker at the edge
+		draw().line(x + rad * 0.55f, y, x + rad, y, t * 3.0f, hair);
+		draw().line(x, y + rad * 0.55f, x, y + rad, t * 3.0f, hair);
+		for (int i = 1; i <= 4; i++) { // the marks
+			const float d = rad * 0.1f * (float)i, m = h * 0.008f;
+			draw().line(x - d, y - m, x - d, y + m, t, hair);
+			draw().line(x + d, y - m, x + d, y + m, t, hair);
+			draw().line(x - m, y + d, x + m, y + d, t, hair);
+		}
+		draw().circle(x, y, h * 0.003f, SMS_RGBA(230, 30, 30, a));
+		return true;
+	}
+
 	void drawCrosshair()
 	{
 		if (!fluddHeld || !viewIsOurs || !setting("crosshair", 1))
@@ -510,6 +547,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
 		optionNumber("shotgun_water", "Rifle water per shot", 24, 0, 200, 2);
 		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
+		optionBool("rifle_scope", "Rifle sniper scope while zoomed", false);
 		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
 		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
 		optionNumber("smg_rate", "Submachine gun fire rate (hundredths of a second)", 15, 1, 100, 1);
@@ -699,7 +737,7 @@ struct FirstPerson : sms::Mod {
 
 
 		on<SmsEvDraw>(SMS_EV_DRAW, [this](SmsEvDraw& d) {
-			if (d.mode == SMS_MODE_STAGE)
+			if (d.mode == SMS_MODE_STAGE && !drawScope())
 				drawCrosshair();
 			if (d.mode != SMS_MODE_STAGE || core().time() > toastUntil)
 				return;
