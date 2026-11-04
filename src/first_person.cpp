@@ -472,8 +472,15 @@ struct FirstPerson : sms::Mod {
 		if (!api().player->get(&m))
 			return false;
 		const uint32_t st = m.status;
-		return (st & 0x800000u) != 0 || st == 0x891u; // slips, belly slides, dive jumps; a dive
+		// belly slides, dives and slips (0x800000), the roll up out of a belly slide (0x2000889)
+		const bool lying = (st & 0x800000u) != 0 || st == 0x891u || st == 0x2000889u;
+		if (st != lastStatus && enabled && viewIsOurs) { // which ones, in the log (to find any still missing)
+			lastStatus = st;
+			fprintf(stderr, "[mod:first-person] status 0x%X%s\n", (unsigned)st, lying ? " (his body left out)" : "");
+		}
+		return lying;
 	}
+	mutable uint32_t lastStatus = 0;
 	bool holding() const
 	{
 		SmsPlayer m = SmsPlayer();
