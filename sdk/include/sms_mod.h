@@ -1783,7 +1783,6 @@ enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPR
 #define SMS_SPRAY_DEFEAT 1 /* set_weapon's flags: a weapon may defeat enemies */
 #define SMS_SPRAY_DEFEAT_NORMAL 4 /* set_weapon's flags: the normal spray may defeat enemies too (a short burst on one) */
 #define SMS_SPRAY_THIRD_PERSON 8 /* set_weapon's flags: the weapon fires with FLUDD on his back too (not held in view): from its nozzle, the way he faces, its nozzle out and pumping as it fires */
-#define SMS_SPRAY_KNOCK_NPCS 64 /* set_weapon's flags: the bazooka's burst shoves people (Piantas, Nokis) away too, never hurting them */
 #define SMS_SPRAY_THIRD_PERSON_MODEL 16 /* set_weapon's flags: with SMS_SPRAY_THIRD_PERSON, all of FLUDD on his back drawn as a pack of the weapon's colours with the weapon on it */
 
 struct SmsApi {

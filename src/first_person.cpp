@@ -151,8 +151,7 @@ struct FirstPerson : sms::Mod {
 			fluddHeld = true;
 			if (weapons)
 				h->set_weapon(weaponNow(), (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
-				                               | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0)
-				                               | (setting("bazooka_people", 0) ? SMS_SPRAY_KNOCK_NPCS : 0));
+				                               | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0));
 			sendWeaponStats(h);
 		} else {
 			if (fluddHeld) {
@@ -166,8 +165,7 @@ struct FirstPerson : sms::Mod {
 			if (w3) {
 				h->set_weapon(w3, (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
 				                      | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0) | SMS_SPRAY_THIRD_PERSON
-				                      | (setting("third_person_models", 0) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0)
-				                      | (setting("bazooka_people", 0) ? SMS_SPRAY_KNOCK_NPCS : 0));
+				                      | (setting("third_person_models", 0) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0));
 				sendWeaponStats(h);
 				thirdArmed = true;
 			} else if (thirdArmed) {
@@ -588,7 +586,6 @@ struct FirstPerson : sms::Mod {
 		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
 		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
 		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
-		optionBool("bazooka_people", "Bazooka pushes people away too", false);
 		optionBool("rocket_jump", "Bazooka rocket jumps (shoot near your feet to fly)", false);
 		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 100, 10, 300, 10);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
