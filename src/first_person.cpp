@@ -222,7 +222,8 @@ struct FirstPerson : sms::Mod {
 	bool zoomed   = false; // the rifle's zoom (D-pad up)
 	bool upWasDown = false, rightWasDown = false, leftWasDown = false;
 	float fovNow  = 0.0f;  // the view's field of view now (eased to the zoom and back)
-	float thirdFov = 0.0f; // in third person, the game camera's while the rifle's zoom is on or easing back (0 none)
+	float thirdFov = 0.0f;
+	float thirdBase = 50.0f; // and the game camera's own // in third person, the game camera's while the rifle's zoom is on or easing back (0 none)
 
 	// D-pad up: the rifle's zoom on and off while it is chosen, in first person (FLUDD in view) or in
 	// third person with its weapons (not when D-pad up is the controller's first person toggle)
@@ -321,10 +322,12 @@ struct FirstPerson : sms::Mod {
 	// cross hairs with marks along them and a red dot in the middle, coming in with the zoom
 	bool drawScope()
 	{
-		if (!zoomed || !fluddHeld || !viewIsOurs || chosen() != SMS_SPRAY_RIFLE || !setting("rifle_scope", 0))
+		if (!zoomed || !canZoom() || !setting("rifle_scope", 0))
 			return false;
-		const float wide = (float)setting("fov", 80), zoom = (float)setting("rifle_zoom", 25);
-		float in         = wide - zoom > 0.5f ? (wide - fovNow) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
+		const bool first = fluddHeld && viewIsOurs; // else third person, the game's own camera narrowed
+		const float wide = first ? (float)setting("fov", 80) : thirdBase, zoom = (float)setting("rifle_zoom", 25);
+		const float now  = first ? fovNow : thirdFov;
+		float in         = wide - zoom > 0.5f ? (wide - now) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
 		in               = in < 0.0f ? 0.0f : in > 1.0f ? 1.0f : in;
 		if (in < 0.05f)
 			return false;
@@ -694,6 +697,7 @@ struct FirstPerson : sms::Mod {
 				showHead();
 				holdFludd();
 				// third person: the rifle's zoom narrows the game's own camera, and back
+				thirdBase = c.fovy;
 				if (zoomed || thirdFov > 0.0f) {
 					const float want = zoomed ? (float)setting("rifle_zoom", 25) : c.fovy;
 					thirdFov         = thirdFov > 0.0f ? thirdFov + (want - thirdFov) * 0.25f : c.fovy;
