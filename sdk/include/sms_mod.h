@@ -1777,6 +1777,8 @@ typedef struct SmsHeldFluddState {
 	int weapon;       /* the weapon chosen (set_weapon), SMS_SPRAY_NORMAL for FLUDD's own */
 	float zoom_fovy;  /* the zoom asked for (set_zoom): the field of view to narrow the camera to; 0 none */
 	int zoom_flags;   /* SMS_ZOOM_FIRST_PERSON, SMS_ZOOM_SCOPE */
+	int game_scope;   /* 1: the game draws SMS_ZOOM_SCOPE's scope itself, over the picture and under its HUD (a
+	                     weapons mod leaves its own out); 0 an older game, where a mod draws it */
 } SmsHeldFluddState;
 
 typedef struct SmsHeldFluddApi {
@@ -1810,7 +1812,8 @@ enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPR
 #define SMS_SPRAY_DEFEAT_NORMAL 4 /* set_weapon's flags: the normal spray may defeat enemies too (a short burst on one) */
 #define SMS_SPRAY_THIRD_PERSON 8 /* set_weapon's flags: the weapon fires with FLUDD on his back too (not held in view): from its nozzle, the way he faces, its nozzle out and pumping as it fires */
 #define SMS_ZOOM_FIRST_PERSON 1 /* set_zoom's flags: switch into first person for the zoom (asked from third person) */
-#define SMS_ZOOM_SCOPE 2 /* set_zoom's flags: a scope is drawn over the view (a crosshair left out) */
+#define SMS_ZOOM_SCOPE 2 /* set_zoom's flags: a scope is drawn over the view (a crosshair left out); the game draws it
+                          when get_state's game_scope says so */
 #define SMS_SPRAY_THIRD_PERSON_MODEL 16 /* set_weapon's flags: with SMS_SPRAY_THIRD_PERSON, all of FLUDD on his back drawn as a pack of the weapon's colours with the weapon on it */
 
 struct SmsApi {

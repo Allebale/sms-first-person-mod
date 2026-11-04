@@ -291,8 +291,8 @@ struct FluddWeapons : sms::Mod {
 	// marks along them and a red dot in the middle, coming in with the zoom
 	void drawScope()
 	{
-		if (!scopeShown())
-			return;
+		if (!scopeShown() || state().game_scope)
+			return; // the game draws it itself, under its HUD
 		float in = (float)((core().time() - zoomedAt) / 0.3);
 		in       = in < 0.0f ? 0.0f : in > 1.0f ? 1.0f : in;
 		if (in < 0.05f)
