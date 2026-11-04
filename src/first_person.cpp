@@ -146,7 +146,7 @@ struct FirstPerson : sms::Mod {
 			const int w     = weaponNow(); // each weapon its own distance from the camera
 			const char* key = w == SMS_SPRAY_RIFLE ? "rifle_distance" : w == SMS_SPRAY_SMG ? "smg_distance"
 			                : w == SMS_SPRAY_BAZOOKA ? "bazooka_distance" : "fludd_distance";
-			const float d   = (float)setting(key, 55);
+			const float d   = (float)setting(key, w == SMS_SPRAY_RIFLE ? 50 : w == SMS_SPRAY_SMG ? 45 : 55);
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
 			if (weapons)
@@ -165,7 +165,7 @@ struct FirstPerson : sms::Mod {
 			if (w3) {
 				h->set_weapon(w3, (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
 				                      | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0) | SMS_SPRAY_THIRD_PERSON
-				                      | (setting("third_person_models", 0) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0));
+				                      | (setting("third_person_models", 1) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0));
 				sendWeaponStats(h);
 				thirdArmed = true;
 			} else if (thirdArmed) {
@@ -200,18 +200,18 @@ struct FirstPerson : sms::Mod {
 			st.drop_size        = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_blob", 50) / 100.0f : 1.0f;
 			st.burst            = (float)setting("bazooka_burst", 150) / 100.0f;
 			st.lift             = (float)setting("bazooka_lift", 60) / 100.0f;
-			st.self_jump        = w == SMS_SPRAY_BAZOOKA && setting("rocket_jump", 0) ? (float)setting("rocket_jump_power", 100) / 100.0f : 0.0f;
+			st.self_jump        = w == SMS_SPRAY_BAZOOKA && setting("rocket_jump", 1) ? (float)setting("rocket_jump_power", 200) / 100.0f : 0.0f;
 			h->set_weapon_stats(w, &st);
 		}
 		SmsSprayStats sm = SmsSprayStats(); // the Submachine gun: the Rifle's kind of shot, faster and softer
 		sm.size          = sizeof sm;
 		sm.every         = (float)setting("smg_rate", 15) / 100.0f;
-		sm.push          = (float)setting("smg_push", 20) / 100.0f;
+		sm.push          = (float)setting("smg_push", 0) / 100.0f;
 		sm.range         = 1.0f;
-		sm.to_defeat     = setting("smg_defeat", 2);
-		sm.water         = setting("smg_water", 24);
+		sm.to_defeat     = setting("smg_defeat", 3);
+		sm.water         = setting("smg_water", 16);
 		sm.hit_size      = (float)setting("smg_hit", 500) / 100.0f;
-		sm.drop_size     = (float)setting("smg_blob", 50) / 100.0f;
+		sm.drop_size     = (float)setting("smg_blob", 20) / 100.0f;
 		sm.burst         = 1.0f;
 		sm.lift          = 0.0f;
 		h->set_weapon_stats(SMS_SPRAY_SMG, &sm);
@@ -281,7 +281,7 @@ struct FirstPerson : sms::Mod {
 	// in first person, FLUDD held in view
 	bool firstPersonWeapons() const { return enabled && viewIsOurs && setting("fludd_view", 1); }
 	// in third person, with its option on (nothing on screen changes)
-	bool thirdPersonWeapons() const { return !(enabled && viewIsOurs) && setting("third_person_weapons", 0); }
+	bool thirdPersonWeapons() const { return !(enabled && viewIsOurs) && setting("third_person_weapons", 1); }
 	// the weapons can be used here and now
 	bool weaponsHere() const { return setting("weapons", 1) && (firstPersonWeapons() || thirdPersonWeapons()); }
 
@@ -337,7 +337,7 @@ struct FirstPerson : sms::Mod {
 	// cross hairs with marks along them and a red dot in the middle, coming in with the zoom
 	bool drawScope()
 	{
-		if (!zoomed || !canZoom() || !viewIsOurs || !setting("rifle_scope", 0))
+		if (!zoomed || !canZoom() || !viewIsOurs || !setting("rifle_scope", 1))
 			return false;
 		const float wide = (float)setting("fov", 80), zoom = (float)setting("rifle_zoom", 25);
 		float in         = wide - zoom > 0.5f ? (wide - fovNow) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
@@ -463,6 +463,17 @@ struct FirstPerson : sms::Mod {
 	// and 0x20000000), or a net on a ceiling (0x200000: under Pianta Village). His body is left
 	// to the game there: turned to the view, he was turned off the fence and let go, or walked
 	// off the ceiling's net the wrong way.
+	// on his belly or diving (a belly slide, a dive, the jump out of one): his body turns over
+	// round the camera, so his legs would come into the view; all of him left out then
+	bool lyingDown() const
+	{
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		if (!api().player->get(&m))
+			return false;
+		const uint32_t st = m.status;
+		return (st & 0x800000u) != 0 || st == 0x891u; // slips, belly slides, dive jumps; a dive
+	}
 	bool holding() const
 	{
 		SmsPlayer m = SmsPlayer();
@@ -554,31 +565,31 @@ struct FirstPerson : sms::Mod {
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
 		optionBool("fludd_view", "FLUDD in view, held like a gun (Allebale's builds)", true);
 		optionNumber("fludd_distance", "FLUDD distance from the camera", 55, 30, 120, 5);
-		optionNumber("rifle_distance", "Rifle distance from the camera", 55, 30, 120, 5);
-		optionNumber("smg_distance", "Submachine gun distance from the camera", 55, 30, 120, 5);
+		optionNumber("rifle_distance", "Rifle distance from the camera", 50, 30, 120, 5);
+		optionNumber("smg_distance", "Submachine gun distance from the camera", 45, 30, 120, 5);
 		optionNumber("bazooka_distance", "Bazooka distance from the camera", 55, 30, 120, 5);
 		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
 		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
 		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
-		optionBool("third_person_weapons", "FLUDD weapons in third person too", false);
-		optionBool("third_person_models", "Weapon packs in place of FLUDD in third person", false);
+		optionBool("third_person_weapons", "FLUDD weapons in third person too", true);
+		optionBool("third_person_models", "Weapon packs in place of FLUDD in third person", true);
 		optionBool("normal_defeat", "FLUDD can defeat enemies", true);
 		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
 		// each weapon's numbers (the game's own by default)
 		optionNumber("shotgun_rate", "Rifle fire rate (tenths of a second)", 8, 1, 100, 1);
 		optionNumber("shotgun_push", "Rifle push (percent)", 300, 0, 400, 10);
 		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
-		optionNumber("shotgun_water", "Rifle water per shot", 24, 0, 200, 2);
+		optionNumber("shotgun_water", "Rifle water per shot", 16, 0, 200, 2);
 		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
-		optionBool("rifle_scope", "Rifle sniper scope while zoomed", false);
+		optionBool("rifle_scope", "Rifle sniper scope while zoomed", true);
 		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
 		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
 		optionNumber("smg_rate", "Submachine gun fire rate (hundredths of a second)", 15, 1, 100, 1);
-		optionNumber("smg_push", "Submachine gun push (percent)", 20, 0, 400, 10);
-		optionNumber("smg_defeat", "Submachine gun shots to defeat", 2, 1, 10, 1);
-		optionNumber("smg_water", "Submachine gun water per shot", 24, 0, 200, 2);
+		optionNumber("smg_push", "Submachine gun push (percent)", 0, 0, 400, 10);
+		optionNumber("smg_defeat", "Submachine gun shots to defeat", 3, 1, 10, 1);
+		optionNumber("smg_water", "Submachine gun water per shot", 16, 0, 200, 2);
 		optionNumber("smg_hit", "Submachine gun hit size (percent)", 500, 20, 500, 10);
-		optionNumber("smg_blob", "Submachine gun blob size (percent)", 50, 20, 400, 10);
+		optionNumber("smg_blob", "Submachine gun blob size (percent)", 20, 20, 400, 10);
 		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 10, 1, 200, 5);
 		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
@@ -586,8 +597,8 @@ struct FirstPerson : sms::Mod {
 		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
 		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
 		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
-		optionBool("rocket_jump", "Bazooka rocket jumps (shoot near your feet to fly)", false);
-		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 100, 10, 300, 10);
+		optionBool("rocket_jump", "Bazooka rocket jumps (shoot near your feet to fly)", true);
+		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 200, 10, 300, 10);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
@@ -755,7 +766,7 @@ struct FirstPerson : sms::Mod {
 		// his model out of the view (the camera is inside his head)
 		// (the game asks twice a frame: FLUDD, then Mario's own models)
 		on<SmsEvObject>(SMS_EV_HIDE_PLAYER_MODEL, [this](SmsEvObject&) {
-			return enabled && viewIsOurs && modelMode() == MODEL_HIDDEN ? SMS_CANCEL : SMS_CONTINUE;
+			return enabled && viewIsOurs && (modelMode() == MODEL_HIDDEN || lyingDown()) ? SMS_CANCEL : SMS_CONTINUE;
 		});
 
 
