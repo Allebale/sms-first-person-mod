@@ -43,6 +43,12 @@ const char* const kRanges[] = {"Off", "Low", "Medium", "High", "Very high", "Ins
 const float kRangeScale[]   = {1.0f, 1.5f, 2.0f, 3.0f, 5.0f, 10.0f};
 const int kRangeCount       = 6;
 
+// Shadow Mario: how much of his water meter each weapon hit takes, times the game's own (the
+// "shadow_mario" setting)
+const char* const kShadowLevels[] = {"Very easy", "Easy", "Normal", "Hard", "Very hard", "Extreme"};
+const float kShadowDamage[]       = {2.0f, 1.4f, 1.0f, 0.6f, 0.35f, 0.2f};
+const int kShadowCount            = 6;
+
 } // namespace
 
 struct FluddWeapons : sms::Mod {
@@ -180,10 +186,13 @@ struct FluddWeapons : sms::Mod {
 			info("long range: %s (%.1f times as far)", kRanges[r >= 0 && r < kRangeCount ? r : 0], far);
 			lastFar = far;
 		}
+		const int sh      = setting("shadow_mario", 2);
+		const float boss  = kShadowDamage[sh >= 0 && sh < kShadowCount ? sh : 2];
 		SmsSprayStats ns  = SmsSprayStats(); // FLUDD's own spray: only its time to defeat
 		ns.size           = sizeof ns;
 		ns.every          = (float)setting("normal_defeat_time", 4) / 10.0f;
 		ns.far_scale      = far;
+		ns.shadow_damage = boss;
 		h->set_weapon_stats(SMS_SPRAY_NORMAL, &ns);
 
 		SmsSprayStats rf = SmsSprayStats(); // the Rifle: one big, fast blob of water, dead straight
@@ -198,6 +207,7 @@ struct FluddWeapons : sms::Mod {
 		rf.burst         = 1.0f;
 		rf.view_distance = (float)setting("rifle_distance", 50);
 		rf.far_scale     = far;
+		rf.shadow_damage = boss;
 		h->set_weapon_stats(SMS_SPRAY_RIFLE, &rf);
 
 		SmsSprayStats sm = SmsSprayStats(); // the Submachine gun: the Rifle's kind of shot, faster and softer
@@ -212,6 +222,7 @@ struct FluddWeapons : sms::Mod {
 		sm.burst         = 1.0f;
 		sm.view_distance = (float)setting("smg_distance", 45);
 		sm.far_scale     = far;
+		sm.shadow_damage = boss;
 		h->set_weapon_stats(SMS_SPRAY_SMG, &sm);
 
 		SmsSprayStats bz = SmsSprayStats(); // the Bazooka: a burst where it lands
@@ -228,6 +239,7 @@ struct FluddWeapons : sms::Mod {
 		bz.self_jump     = setting("rocket_jump", 1) ? (float)setting("rocket_jump_power", 200) / 100.0f : 0.0f;
 		bz.view_distance = (float)setting("bazooka_distance", 55);
 		bz.far_scale     = far;
+		bz.shadow_damage = boss;
 		h->set_weapon_stats(SMS_SPRAY_BAZOOKA, &bz);
 	}
 
@@ -320,6 +332,8 @@ struct FluddWeapons : sms::Mod {
 		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
 		optionChoice("long_range", "Long range (enemies and characters seen and hit further away)",
 		             std::vector<const char*>(kRanges, kRanges + kRangeCount), 0);
+		optionChoice("shadow_mario", "Shadow Mario difficulty (how many hits to take him down)",
+		             std::vector<const char*>(kShadowLevels, kShadowLevels + kShadowCount), 2);
 		optionNumber("rifle_distance", "Rifle distance from the camera", 50, 30, 120, 5);
 		optionNumber("smg_distance", "Submachine gun distance from the camera", 45, 30, 120, 5);
 		optionNumber("bazooka_distance", "Bazooka distance from the camera", 55, 30, 120, 5);
