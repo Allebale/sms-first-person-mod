@@ -1760,7 +1760,22 @@ typedef struct SmsSprayStats {
 	float lift;      /* the bazooka's: how high it throws enemies, times its own (1) */
 	float drop_size; /* the size of its drops, times its own (1) */
 	float self_jump; /* the bazooka's: how hard its burst throws Mario (a rocket jump), times its own (1); 0 not */
+	float view_distance; /* first person: how far ahead of the camera it is held, as set's `forward` (right and down
+	                        go with it); 0 the first-person mod's own */
+	float far_scale;     /* long range (the same for every weapon, the last one set): enemies and characters drawn and
+	                        moving this many times further than the game's own distance (up to 20), so they can be hit
+	                        there; 1 (or 0) the game's own */
 } SmsSprayStats;
+
+/* held_fludd->get_state: what a first-person mod and a weapons mod set, for each other. */
+typedef struct SmsHeldFluddState {
+	uint32_t size;    /* sizeof(SmsHeldFluddState) */
+	int first_person; /* a first-person mod's camera is on (set_view) */
+	int held;         /* FLUDD is held in view now (set) */
+	int weapon;       /* the weapon chosen (set_weapon), SMS_SPRAY_NORMAL for FLUDD's own */
+	float zoom_fovy;  /* the zoom asked for (set_zoom): the field of view to narrow the camera to; 0 none */
+	int zoom_flags;   /* SMS_ZOOM_FIRST_PERSON, SMS_ZOOM_SCOPE */
+} SmsHeldFluddState;
 
 typedef struct SmsHeldFluddApi {
 	uint32_t size;
@@ -1777,12 +1792,23 @@ typedef struct SmsHeldFluddApi {
 	   NULL puts them back. For SMS_SPRAY_NORMAL only `every` is taken: the seconds of spraying one
 	   enemy (with SMS_SPRAY_DEFEAT_NORMAL) that defeat it. Returns 1 if taken. (Check size: SMS_API_HAS(held_fludd, set_weapon_stats).) */
 	int (*set_weapon_stats)(int weapon, const SmsSprayStats* stats);
+	/* For a first-person mod and a weapons mod to work together, each its own mod: a first-person
+	   mod says when its camera is on (whether FLUDD is held or not); a weapons mod asks for a zoom
+	   (`fovy` the field of view, 0 none; SMS_ZOOM_FIRST_PERSON in `flags`: switch into first person
+	   for it, SMS_ZOOM_SCOPE: a scope is drawn, leave a crosshair out); get_state tells each what
+	   the other set. The game itself does nothing with them. Reset when the mod that set them unloads.
+	   (Check size: SMS_API_HAS(held_fludd, get_state).) */
+	int (*set_view)(int on);
+	int (*set_zoom)(float fovy, int flags);
+	int (*get_state)(SmsHeldFluddState* state);
 } SmsHeldFluddApi;
 
 enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPRAY_BAZOOKA = 3, SMS_SPRAY_SMG = 4 };
 #define SMS_SPRAY_DEFEAT 1 /* set_weapon's flags: a weapon may defeat enemies */
 #define SMS_SPRAY_DEFEAT_NORMAL 4 /* set_weapon's flags: the normal spray may defeat enemies too (a short burst on one) */
 #define SMS_SPRAY_THIRD_PERSON 8 /* set_weapon's flags: the weapon fires with FLUDD on his back too (not held in view): from its nozzle, the way he faces, its nozzle out and pumping as it fires */
+#define SMS_ZOOM_FIRST_PERSON 1 /* set_zoom's flags: switch into first person for the zoom (asked from third person) */
+#define SMS_ZOOM_SCOPE 2 /* set_zoom's flags: a scope is drawn over the view (a crosshair left out) */
 #define SMS_SPRAY_THIRD_PERSON_MODEL 16 /* set_weapon's flags: with SMS_SPRAY_THIRD_PERSON, all of FLUDD on his back drawn as a pack of the weapon's colours with the weapon on it */
 
 struct SmsApi {

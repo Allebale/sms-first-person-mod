@@ -1,7 +1,8 @@
-# Builds the mod for every platform the game runs on, and releases one zip:
-# <id>/ with a library for each platform, which players unzip into the game's
-# mods/ folder. A release is made on a tag (v1.0.0, ...), or on main when
-# mod/mod.ini's version has no release yet: raise the version to release.
+# Builds the two mods (First Person, here; FLUDD Weapons, in weapons/) for every
+# platform the game runs on, and makes a zip of each: <id>/ with a library for
+# each platform, which players unzip into the game's mods/ folder. A release (of
+# both) is made on a tag (v1.0.0, ...), or on main when mod/mod.ini's version
+# has no release yet: raise the version to release.
 name: build
 
 on:
@@ -62,6 +63,8 @@ jobs:
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSMS_MODS_OUT="$PWD/out" ${{ matrix.cmake }}
           cmake --build build --config Release --parallel
+          cmake -S weapons -B build-weapons -DCMAKE_BUILD_TYPE=Release -DSMS_MODS_OUT="$PWD/out" ${{ matrix.cmake }}
+          cmake --build build-weapons --config Release --parallel
           find out -type f
       - uses: actions/upload-artifact@v4
         with:
@@ -69,7 +72,7 @@ jobs:
           path: out
           if-no-files-found: error
 
-  # One zip with every platform's library.
+  # A zip of each mod with every platform's library.
   package:
     needs: build
     runs-on: ubuntu-24.04
@@ -81,23 +84,33 @@ jobs:
           path: parts
       - name: Zip
         run: |
-          id=$(sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*//p' mod/mod.ini | head -1 | tr -d '\r')
-          version="${GITHUB_REF_NAME#v}"
-          if [[ "$GITHUB_REF_TYPE" != tag ]]; then
-            version=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' mod/mod.ini | head -1 | tr -d '\r')
-            [[ "$GITHUB_REF" == refs/heads/main ]] || version="$version-${GITHUB_SHA::7}"
-          fi
           mkdir -p out
           for d in parts/mod-*; do cp -R "$d"/. out/; done
           find out -type f
-          test "$(ls "out/$id/bin" | wc -l)" -eq 7
-          zip="$id-$version.zip"
-          (cd out && zip -r -X "../$zip" "$id")
-          echo "zip=$zip" >> "$GITHUB_ENV"
+          zips=""
+          for ini in mod/mod.ini weapons/mod/mod.ini; do
+            id=$(sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*//p' "$ini" | head -1 | tr -d '\r')
+            version="${GITHUB_REF_NAME#v}"
+            if [[ "$GITHUB_REF_TYPE" != tag ]]; then
+              version=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' "$ini" | head -1 | tr -d '\r')
+              [[ "$GITHUB_REF" == refs/heads/main ]] || version="$version-${GITHUB_SHA::7}"
+            fi
+            test "$(ls "out/$id/bin" | wc -l)" -eq 7
+            zip="$id-$version.zip"
+            (cd out && zip -r -X "../$zip" "$id")
+            zips="$zips $zip"
+          done
+          first=$(echo $zips | cut -d' ' -f1); second=$(echo $zips | cut -d' ' -f2)
+          echo "zip=$first" >> "$GITHUB_ENV"
+          echo "weapons_zip=$second" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
         with:
           name: release-zip
           path: ${{ env.zip }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: weapons-zip
+          path: ${{ env.weapons_zip }}
 
   release:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
@@ -110,6 +123,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: release-zip
+          path: zip
+      - uses: actions/download-artifact@v4
+        with:
+          name: weapons-zip
           path: zip
       - name: Release
         env:

@@ -49,12 +49,6 @@ const SmsHeldFluddApi* heldFluddApi(const SmsApi& api)
 	return h->size >= offsetof(SmsHeldFluddApi, set) + sizeof(void*) && h->magic == SMS_HELD_FLUDD_MAGIC && h->set ? h
 	                                                                                                              : nullptr;
 }
-// the spray weapons (set_weapon's SMS_SPRAY_*), D-pad left and right
-// (the Rifle: one big, fast blob of water, dead straight with no end to its reach; its zoom on
-// D-pad up)
-const char* const kWeaponNames[] = {"FLUDD", "Rifle", "Submachine gun", "Bazooka"};
-const int kWeaponIds[]           = {SMS_SPRAY_NORMAL, SMS_SPRAY_RIFLE, SMS_SPRAY_SMG, SMS_SPRAY_BAZOOKA};
-const int kWeaponCount           = 4;
 
 } // namespace
 
@@ -82,10 +76,9 @@ struct FirstPerson : sms::Mod {
 		toastUntil = core().time() + 1.5;
 	}
 
-	void flip()
+	void flip(bool quiet = false)
 	{
 		enabled = !enabled;
-		zoomed  = false;
 		haveYaw = false; // from the game camera again when it starts
 		if (!enabled) {
 			viewIsOurs = false;
@@ -95,7 +88,8 @@ struct FirstPerson : sms::Mod {
 		}
 		pitch   = 0;
 		haveEye = false;
-		toast(enabled ? "First person" : "Third person");
+		if (!quiet)
+			toast(enabled ? "First person" : "Third person");
 		info("%s", enabled ? "on" : "off");
 	}
 
@@ -125,15 +119,16 @@ struct FirstPerson : sms::Mod {
 		return m == MODEL_BODY && !hasHeadApi() ? MODEL_HIDDEN : m;
 	}
 
-	// FLUDD in view, held like a gun (the game moves its own model there), while the view is his
+	// FLUDD in view, held like a gun (the game moves its own model there), while the view is his;
+	// a weapon chosen by the FLUDD Weapons mod is held there instead (the game draws its model)
 	bool fluddHeld = false;
+	bool toldNoHeld = false;
 	void holdFludd()
 	{
 		const SmsHeldFluddApi* h = heldFluddApi(api());
-		// with weapons on, the gun shows while the spray nozzle is out, the normal spray too (not
-		// the hover, rocket or turbo nozzle, nor on Yoshi); without them, always
-		const bool shown = !setting("weapons", 1) || sprayNozzleOut();
-		const bool want  = enabled && viewIsOurs && setting("fludd_view", 1) && !holding() && shown;
+		const bool want          = enabled && viewIsOurs && setting("fludd_view", 1) && !holding();
+		if (h && h->size >= offsetof(SmsHeldFluddApi, set_view) + sizeof(void*) && h->set_view)
+			h->set_view(enabled && viewIsOurs ? 1 : 0); // for the FLUDD Weapons mod
 		if (!h) {
 			if (want && !toldNoHeld) {
 				warn("this game cannot show FLUDD in view (it needs a Remastered or First Person beta build)");
@@ -141,239 +136,49 @@ struct FirstPerson : sms::Mod {
 			}
 			return;
 		}
-		const bool weapons = h->size >= offsetof(SmsHeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon;
 		if (want) {
-			const int w     = weaponNow(); // each weapon its own distance from the camera
-			const char* key = w == SMS_SPRAY_RIFLE ? "rifle_distance" : w == SMS_SPRAY_SMG ? "smg_distance"
-			                : w == SMS_SPRAY_BAZOOKA ? "bazooka_distance" : "fludd_distance";
-			const float d   = (float)setting(key, w == SMS_SPRAY_RIFLE ? 50 : w == SMS_SPRAY_SMG ? 45 : 55);
+			const float d = (float)setting("fludd_distance", 55);
 			h->set(1, d * 0.42f, d * 0.40f, d, 0.55f, 1200.0f);
 			fluddHeld = true;
-			if (weapons)
-				h->set_weapon(weaponNow(), (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
-				                               | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0));
-			sendWeaponStats(h);
-		} else {
-			if (fluddHeld) {
-				h->set(0, 0, 0, 0, 1, 0);
-				fluddHeld = false;
-				if (weapons)
-					h->set_weapon(0, 0);
-			}
-			// in third person, with its option on: FLUDD stays on his back, the weapon fires from it
-			const int w3 = weapons && thirdPersonWeapons() ? weaponNow() : 0;
-			if (w3) {
-				h->set_weapon(w3, (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
-				                      | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0) | SMS_SPRAY_THIRD_PERSON
-				                      | (setting("third_person_models", 1) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0));
-				sendWeaponStats(h);
-				thirdArmed = true;
-			} else if (thirdArmed) {
-				if (weapons)
-					h->set_weapon(0, 0);
-				thirdArmed = false;
-			}
+		} else if (fluddHeld) {
+			h->set(0, 0, 0, 0, 1, 0);
+			fluddHeld = false;
 		}
 	}
-	bool toldNoHeld = false;
-	bool thirdArmed = false; // a weapon set for third person
-	// The weapons' numbers from the menu, to the game (newer builds: set_weapon_stats).
-	void sendWeaponStats(const SmsHeldFluddApi* h)
+
+	// What the FLUDD Weapons mod asks (held_fludd's get_state): the Rifle's zoom, its scope, and
+	// first person for a zoom from third person.
+	SmsHeldFluddState weaponsState() const
 	{
-		if (h->size < offsetof(SmsHeldFluddApi, set_weapon_stats) + sizeof(void*) || !h->set_weapon_stats)
-			return;
-		SmsSprayStats ns = SmsSprayStats(); // the normal spray: only its time to defeat
-		ns.size          = sizeof ns;
-		ns.every         = (float)setting("normal_defeat_time", 4) / 10.0f;
-		h->set_weapon_stats(SMS_SPRAY_NORMAL, &ns);
-		static const char* const kKeys[] = {"shotgun", "shotgun", "bazooka"}; // the Rifle's (its keys kept from the shotgun's)
-		for (int w = SMS_SPRAY_SHOTGUN; w <= SMS_SPRAY_BAZOOKA; w++) {
-			const std::string k = kKeys[w - 1];
-			SmsSprayStats st    = SmsSprayStats();
-			st.size             = sizeof st;
-			st.every            = (float)setting((k + "_rate").c_str(), 10) / 10.0f;
-			st.push             = (float)setting((k + "_push").c_str(), 100) / 100.0f;
-			st.range            = w == SMS_SPRAY_BAZOOKA ? (float)setting("bazooka_range", 100) / 100.0f : 1.0f; // the Rifle's has no end
-			st.to_defeat        = setting((k + "_defeat").c_str(), 1);
-			st.water            = setting((k + "_water").c_str(), 12);
-			st.hit_size         = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_hit", 500) / 100.0f : 1.0f;
-			st.drop_size        = w == SMS_SPRAY_RIFLE ? (float)setting("rifle_blob", 50) / 100.0f : 1.0f;
-			st.burst            = (float)setting("bazooka_burst", 150) / 100.0f;
-			st.lift             = (float)setting("bazooka_lift", 60) / 100.0f;
-			st.self_jump        = w == SMS_SPRAY_BAZOOKA && setting("rocket_jump", 1) ? (float)setting("rocket_jump_power", 200) / 100.0f : 0.0f;
-			h->set_weapon_stats(w, &st);
+		SmsHeldFluddState st = SmsHeldFluddState();
+		st.size              = sizeof st;
+		const SmsHeldFluddApi* h = heldFluddApi(api());
+		if (!h || h->size < offsetof(SmsHeldFluddApi, get_state) + sizeof(void*) || !h->get_state || !h->get_state(&st))
+			st = SmsHeldFluddState();
+		return st;
+	}
+	float fovNow        = 0.0f;  // the view's field of view now (eased to a zoom and back)
+	bool flippedForZoom = false; // first person switched on for a zoom from third person
+	void zoomFirstPerson()
+	{
+		const bool wants = (weaponsState().zoom_flags & SMS_ZOOM_FIRST_PERSON) != 0;
+		if (wants && !enabled) {
+			flip(true);
+			flippedForZoom = true;
+		} else if (!wants && flippedForZoom) {
+			if (enabled)
+				flip(true);
+			flippedForZoom = false;
 		}
-		SmsSprayStats sm = SmsSprayStats(); // the Submachine gun: the Rifle's kind of shot, faster and softer
-		sm.size          = sizeof sm;
-		sm.every         = (float)setting("smg_rate", 15) / 100.0f;
-		sm.push          = (float)setting("smg_push", 0) / 100.0f;
-		sm.range         = 1.0f;
-		sm.to_defeat     = setting("smg_defeat", 3);
-		sm.water         = setting("smg_water", 16);
-		sm.hit_size      = (float)setting("smg_hit", 500) / 100.0f;
-		sm.drop_size     = (float)setting("smg_blob", 20) / 100.0f;
-		sm.burst         = 1.0f;
-		sm.lift          = 0.0f;
-		h->set_weapon_stats(SMS_SPRAY_SMG, &sm);
-	}
-
-	bool zoomed   = false; // the rifle's zoom (D-pad up)
-	bool upWasDown = false, rightWasDown = false, leftWasDown = false;
-	float fovNow  = 0.0f;  // the view's field of view now (eased to the zoom and back)
-
-	// D-pad up: the rifle's zoom on and off while it is chosen in first person (FLUDD in view); in
-	// third person with its weapons, into first person zoomed and back out again (not when D-pad up
-	// is the controller's first person toggle)
-	bool zoomFromThird = false; // first person and the zoom on from third person by D-pad up
-	bool canZoom() const
-	{
-		return chosen() == SMS_SPRAY_RIFLE && fluddHeld;
-	}
-	void toggleZoom(const SmsPad& p)
-	{
-		const int b      = setting("button", 0);
-		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-		if (zoomFromThird && !enabled)
-			zoomFromThird = false; // left first person some other way
-		if (zoomed && !canZoom() && !zoomFromThird)
-			zoomed = false;
-		// once a press: the moment D-pad up goes down (its "pressed" can come again while held)
-		const bool down  = (p.held & SMS_PAD_UP) != 0;
-		const bool fresh = down && !upWasDown;
-		upWasDown        = down;
-		if (!fresh || t == SMS_PAD_UP)
-			return;
-		if (zoomFromThird) { // zoomed from third person: back to it
-			zoomFromThird = false;
-			flip(); // (the zoom off with it)
-			info("rifle zoom off, back to third person");
-			return;
-		}
-		if (!enabled && chosen() == SMS_SPRAY_RIFLE && thirdPersonWeapons() && weaponNow() == SMS_SPRAY_RIFLE) {
-			flip(); // third person with the rifle: into first person, zoomed (and its scope)
-			zoomed        = true;
-			zoomFromThird = true;
-			info("rifle zoom on, from third person");
-			return;
-		}
-		if (!canZoom())
-			return;
-		zoomed = !zoomed;
-		info("rifle zoom %s", zoomed ? "on" : "off");
-	}
-
-	int weapon = 0; // the spray weapon chosen (kWeaponNames)
-	bool rHeld = false;   // R, as the controller has it (kept from the game while a weapon fires)
-
-	// the weapon chosen (SMS_SPRAY_*), whether or not it can fire now
-	int chosen() const { return weapon >= 0 && weapon < kWeaponCount ? kWeaponIds[weapon] : SMS_SPRAY_NORMAL; }
-
-	// R fires
-	bool firing() const { return rHeld; }
-
-	bool sprayNozzleOut() const
-	{
-		SmsPlayer m = SmsPlayer();
-		m.size      = sizeof m;
-		return api().player->get(&m) && m.has_fludd && !m.on_yoshi && m.current_nozzle == 0;
-	}
-
-	// in first person, FLUDD held in view
-	bool firstPersonWeapons() const { return enabled && viewIsOurs && setting("fludd_view", 1); }
-	// in third person, with its option on (nothing on screen changes)
-	bool thirdPersonWeapons() const { return !(enabled && viewIsOurs) && setting("third_person_weapons", 1); }
-	// the weapons can be used here and now
-	bool weaponsHere() const { return setting("weapons", 1) && (firstPersonWeapons() || thirdPersonWeapons()); }
-
-	// the weapon that fires now: with weapons on, FLUDD held (or the third person option) and its spray nozzle out
-	int weaponNow() const
-	{
-		if (!weaponsHere() || chosen() == SMS_SPRAY_NORMAL || holding())
-			return 0;
-		SmsPlayer m = SmsPlayer();
-		m.size      = sizeof m;
-		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || m.current_nozzle != 0)
-			return 0;
-		return chosen();
-	}
-	bool toldWeapons = false;
-
-	// D-pad left and right: the spray weapon, while FLUDD is in view (not a button the
-	// controller toggle uses)
-	void switchWeapon(const SmsPad& p)
-	{
-		if (!weaponsHere())
-			return;
-		if (!toldWeapons) {
-			const SmsHeldFluddApi* h = heldFluddApi(api());
-			info("weapons on: D-pad left and right switch them%s",
-			     h && h->size >= offsetof(SmsHeldFluddApi, set_weapon) + sizeof(void*) && h->set_weapon
-			         ? "" : " (this game cannot fire them: it needs a newer Remastered or First Person beta build)");
-			toldWeapons = true;
-		}
-		const int b      = setting("button", 0);
-		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-		int step         = 0;
-		// once a press each: the moment the button goes down
-		const bool right = (p.held & SMS_PAD_RIGHT) != 0, left = (p.held & SMS_PAD_LEFT) != 0;
-		const bool newRight = right && !rightWasDown, newLeft = left && !leftWasDown;
-		rightWasDown = right;
-		leftWasDown  = left;
-		if (newRight && t != SMS_PAD_RIGHT)
-			step = 1;
-		else if (newLeft && t != SMS_PAD_LEFT)
-			step = kWeaponCount - 1;
-		if (!step)
-			return;
-		weapon = (weapon + step) % kWeaponCount;
-		zoomed = false;
-		toast(kWeaponNames[weapon]);
-		info("weapon: %s", kWeaponNames[weapon]);
 	}
 
 	// A small crosshair in the middle of the view while FLUDD is held there (the spray and
 	// underwater nozzles, off Yoshi): where its water goes
-	// The rifle's sniper scope while it is zoomed (its option): black round a round sight, thin
-	// cross hairs with marks along them and a red dot in the middle, coming in with the zoom
-	bool drawScope()
-	{
-		if (!zoomed || !canZoom() || !viewIsOurs || !setting("rifle_scope", 1))
-			return false;
-		const float wide = (float)setting("fov", 80), zoom = (float)setting("rifle_zoom", 25);
-		float in         = wide - zoom > 0.5f ? (wide - fovNow) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
-		in               = in < 0.0f ? 0.0f : in > 1.0f ? 1.0f : in;
-		if (in < 0.05f)
-			return false;
-		float w = 0, h = 0;
-		draw().canvas(&w, &h);
-		const float x = w * 0.5f, y = h * 0.5f, rad = h * 0.46f;
-		const uint8_t a = (uint8_t)(255.0f * in);
-		const float out = sqrtf(x * x + y * y) + 4.0f; // past the corners
-		draw().circle_outline(x, y, (rad + out) * 0.5f, out - rad, SMS_RGBA(0, 0, 0, a)); // all round the sight
-		draw().circle_outline(x, y, rad, h * 0.012f, SMS_RGBA(20, 20, 20, a));          // its rim
-		const SmsColor hair = SMS_RGBA(0, 0, 0, (uint8_t)(230.0f * in));
-		const float t = h * 0.0025f, gap = h * 0.02f;
-		draw().line(x - rad, y, x - gap, y, t, hair); // the cross hairs, open in the middle
-		draw().line(x + gap, y, x + rad, y, t, hair);
-		draw().line(x, y - rad, x, y - gap, t, hair);
-		draw().line(x, y + gap, x, y + rad, t, hair);
-		draw().line(x - rad, y, x - rad * 0.55f, y, t * 3.0f, hair); // thicker at the edge
-		draw().line(x + rad * 0.55f, y, x + rad, y, t * 3.0f, hair);
-		draw().line(x, y + rad * 0.55f, x, y + rad, t * 3.0f, hair);
-		for (int i = 1; i <= 4; i++) { // the marks
-			const float d = rad * 0.1f * (float)i, m = h * 0.008f;
-			draw().line(x - d, y - m, x - d, y + m, t, hair);
-			draw().line(x + d, y - m, x + d, y + m, t, hair);
-			draw().line(x - m, y + d, x + m, y + d, t, hair);
-		}
-		draw().circle(x, y, h * 0.003f, SMS_RGBA(230, 30, 30, a));
-		return true;
-	}
 
 	void drawCrosshair()
 	{
-		if (!fluddHeld || !viewIsOurs || !setting("crosshair", 1))
-			return;
+		if (!fluddHeld || !viewIsOurs || !setting("crosshair", 1) || (weaponsState().zoom_flags & SMS_ZOOM_SCOPE))
+			return; // (none under the FLUDD Weapons mod's scope)
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
 		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || (m.current_nozzle != 0 && m.current_nozzle != 2))
@@ -572,47 +377,16 @@ struct FirstPerson : sms::Mod {
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
 		optionBool("fludd_view", "FLUDD in view, held like a gun (Allebale's builds)", true);
 		optionNumber("fludd_distance", "FLUDD distance from the camera", 55, 30, 120, 5);
-		optionNumber("rifle_distance", "Rifle distance from the camera", 50, 30, 120, 5);
-		optionNumber("smg_distance", "Submachine gun distance from the camera", 45, 30, 120, 5);
-		optionNumber("bazooka_distance", "Bazooka distance from the camera", 55, 30, 120, 5);
 		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
-		optionBool("weapons", "FLUDD weapons, D-pad left and right (Allebale's builds)", true);
-		optionBool("weapons_defeat", "FLUDD weapons can defeat enemies", true);
-		optionBool("third_person_weapons", "FLUDD weapons in third person too", true);
-		optionBool("third_person_models", "Weapon packs in place of FLUDD in third person", true);
-		optionBool("normal_defeat", "FLUDD can defeat enemies", true);
-		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
-		// each weapon's numbers (the game's own by default)
-		optionNumber("shotgun_rate", "Rifle fire rate (tenths of a second)", 8, 1, 100, 1);
-		optionNumber("shotgun_push", "Rifle push (percent)", 300, 0, 400, 10);
-		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
-		optionNumber("shotgun_water", "Rifle water per shot", 16, 0, 200, 2);
-		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
-		optionBool("rifle_scope", "Rifle sniper scope while zoomed", true);
-		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
-		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
-		optionNumber("smg_rate", "Submachine gun fire rate (hundredths of a second)", 15, 1, 100, 1);
-		optionNumber("smg_push", "Submachine gun push (percent)", 0, 0, 400, 10);
-		optionNumber("smg_defeat", "Submachine gun shots to defeat", 3, 1, 10, 1);
-		optionNumber("smg_water", "Submachine gun water per shot", 16, 0, 200, 2);
-		optionNumber("smg_hit", "Submachine gun hit size (percent)", 500, 20, 500, 10);
-		optionNumber("smg_blob", "Submachine gun blob size (percent)", 20, 20, 400, 10);
-		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 10, 1, 200, 5);
-		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
-		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
-		optionNumber("bazooka_defeat", "Bazooka shots to defeat", 3, 1, 10, 1);
-		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
-		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
-		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
-		optionBool("rocket_jump", "Bazooka rocket jumps (shoot near your feet to fly)", true);
-		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 200, 10, 300, 10);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
 
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
 			if (k.scancode != toggleKey)
 				return SMS_CONTINUE;
-			if (k.down && !k.repeat)
+			if (k.down && !k.repeat) {
 				flip();
+				flippedForZoom = false;
+			}
 			return SMS_CANCEL;
 		});
 
@@ -622,10 +396,11 @@ struct FirstPerson : sms::Mod {
 				return;
 			const int b = setting("button", 0);
 			const uint16_t bit = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-			if (bit && (pad(0).pressed & bit))
+			if (bit && (pad(0).pressed & bit)) {
 				flip();
-			switchWeapon(pad(0));
-			toggleZoom(pad(0));
+				flippedForZoom = false;
+			}
+			zoomFirstPerson(); // a zoom from third person (the FLUDD Weapons mod)
 		});
 
 		// the C-stick turns and tilts the view; L looks the way Mario faces
@@ -657,25 +432,10 @@ struct FirstPerson : sms::Mod {
 		// way it looks). Turn the stick by the difference, so up runs the way
 		// the view looks; and keep the C-stick from the game's camera.
 		on<SmsEvPadRead>(SMS_EV_PAD_READ, [this](SmsEvPadRead& r) {
-			if (r.pads && thirdPersonWeapons()) { // in third person: R is the weapon's too
-				SmsPadStatus& s = r.pads[0];
-				rHeld = (s.buttons & SMS_PAD_R) || s.trigger_r >= 60;
-				if (weaponNow() != 0) {
-					s.buttons &= (uint16_t)~SMS_PAD_R;
-					s.trigger_r = 0;
-				}
-			}
 			if (!enabled || !viewIsOurs || !haveYaw || !haveGameYaw || !r.pads)
 				return;
 			SmsPadStatus& s = r.pads[0];
 			s.cstick_x = s.cstick_y = 0;
-			// a weapon chosen: R is the weapon's, not the game's (no stream, pump or its sound);
-			// the game fires the weapon each time it is ready while R is held
-			rHeld = (s.buttons & SMS_PAD_R) || s.trigger_r >= 60;
-			if (weaponNow() != 0) {
-				s.buttons &= (uint16_t)~SMS_PAD_R;
-				s.trigger_r = 0;
-			}
 			// On a fence, a ladder, a bar or a wire: the game takes the stick as it is, up
 			// climbing up, left and right along it, the sides swapped when its camera looks
 			// at his front. Left as it is, only swapped when the game's camera and the view
@@ -760,9 +520,10 @@ struct FirstPerson : sms::Mod {
 			c.target.x   = c.position.x + dx * cp * 1000.0f;
 			c.target.y   = c.position.y + sp * 1000.0f;
 			c.target.z   = c.position.z + dz * cp * 1000.0f;
-			// the rifle's zoom: the view narrows (smoothly) while it is on
+			// a zoom (the FLUDD Weapons mod's Rifle): the view narrows (smoothly) while it is on
 			const float wide = (float)setting("fov", 80);
-			const float want = zoomed ? (float)setting("rifle_zoom", 25) : wide;
+			const float zoom = weaponsState().zoom_fovy;
+			const float want = zoom > 0.0f ? zoom : wide;
 			fovNow           = fovNow > 0.0f ? fovNow + (want - fovNow) * 0.25f : want;
 			c.fovy           = fovNow;
 			aimFludd(); // his model too, before it is drawn
@@ -778,7 +539,7 @@ struct FirstPerson : sms::Mod {
 
 
 		on<SmsEvDraw>(SMS_EV_DRAW, [this](SmsEvDraw& d) {
-			if (d.mode == SMS_MODE_STAGE && !drawScope())
+			if (d.mode == SMS_MODE_STAGE)
 				drawCrosshair();
 			if (d.mode != SMS_MODE_STAGE || core().time() > toastUntil)
 				return;
