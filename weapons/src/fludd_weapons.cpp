@@ -180,13 +180,13 @@ struct FluddWeapons : sms::Mod {
 	{
 		if (!HELD_HAS(h, set_weapon_stats) || !h->set_weapon_stats)
 			return;
-		const int r       = setting("long_range", 0);
+		const int r       = setting("long_range", 5);
 		const float far   = kRangeScale[r >= 0 && r < kRangeCount ? r : 0];
 		if (far != lastFar) {
 			info("long range: %s (%.1f times as far)", kRanges[r >= 0 && r < kRangeCount ? r : 0], far);
 			lastFar = far;
 		}
-		const int sh      = setting("shadow_mario", 2);
+		const int sh      = setting("shadow_mario", 5);
 		const float boss  = kShadowDamage[sh >= 0 && sh < kShadowCount ? sh : 2];
 		SmsSprayStats ns  = SmsSprayStats(); // FLUDD's own spray: only its time to defeat
 		ns.size           = sizeof ns;
@@ -197,12 +197,12 @@ struct FluddWeapons : sms::Mod {
 
 		SmsSprayStats rf = SmsSprayStats(); // the Rifle: one big, fast blob of water, dead straight
 		rf.size          = sizeof rf;
-		rf.every         = (float)setting("rifle_rate", 8) / 10.0f;
+		rf.every         = (float)setting("rifle_rate", 13) / 10.0f;
 		rf.push          = (float)setting("rifle_push", 300) / 100.0f;
 		rf.range         = 1.0f;
 		rf.to_defeat     = setting("rifle_defeat", 2);
 		rf.water         = setting("rifle_water", 16);
-		rf.hit_size      = (float)setting("rifle_hit", 500) / 100.0f;
+		rf.hit_size      = (float)setting("rifle_hit", 300) / 100.0f;
 		rf.drop_size     = (float)setting("rifle_blob", 50) / 100.0f;
 		rf.burst         = 1.0f;
 		rf.view_distance = (float)setting("rifle_distance", 50);
@@ -212,12 +212,12 @@ struct FluddWeapons : sms::Mod {
 
 		SmsSprayStats sm = SmsSprayStats(); // the Submachine gun: the Rifle's kind of shot, faster and softer
 		sm.size          = sizeof sm;
-		sm.every         = (float)setting("smg_rate", 15) / 100.0f;
-		sm.push          = (float)setting("smg_push", 30) / 100.0f;
+		sm.every         = (float)setting("smg_rate", 14) / 100.0f;
+		sm.push          = (float)setting("smg_push", 90) / 100.0f;
 		sm.range         = 1.0f;
-		sm.to_defeat     = setting("smg_defeat", 3);
+		sm.to_defeat     = setting("smg_defeat", 6);
 		sm.water         = setting("smg_water", 16);
-		sm.hit_size      = (float)setting("smg_hit", 500) / 100.0f;
+		sm.hit_size      = (float)setting("smg_hit", 100) / 100.0f;
 		sm.drop_size     = (float)setting("smg_blob", 20) / 100.0f;
 		sm.burst         = 1.0f;
 		sm.view_distance = (float)setting("smg_distance", 45);
@@ -227,8 +227,8 @@ struct FluddWeapons : sms::Mod {
 
 		SmsSprayStats bz = SmsSprayStats(); // the Bazooka: a burst where it lands
 		bz.size          = sizeof bz;
-		bz.every         = (float)setting("bazooka_rate", 10) / 10.0f;
-		bz.push          = (float)setting("bazooka_push", 100) / 100.0f;
+		bz.every         = (float)setting("bazooka_rate", 9) / 10.0f;
+		bz.push          = (float)setting("bazooka_push", 150) / 100.0f;
 		bz.range         = (float)setting("bazooka_range", 100) / 100.0f;
 		bz.to_defeat     = setting("bazooka_defeat", 3);
 		bz.water         = setting("bazooka_water", 60);
@@ -236,7 +236,7 @@ struct FluddWeapons : sms::Mod {
 		bz.drop_size     = 1.0f;
 		bz.burst         = (float)setting("bazooka_burst", 150) / 100.0f;
 		bz.lift          = (float)setting("bazooka_lift", 60) / 100.0f;
-		bz.self_jump     = setting("rocket_jump", 1) ? (float)setting("rocket_jump_power", 200) / 100.0f : 0.0f;
+		bz.self_jump     = setting("rocket_jump", 1) ? (float)setting("rocket_jump_power", 150) / 100.0f : 0.0f;
 		bz.view_distance = (float)setting("bazooka_distance", 55);
 		bz.far_scale     = far;
 		bz.shadow_damage = boss;
@@ -331,35 +331,35 @@ struct FluddWeapons : sms::Mod {
 		optionBool("normal_defeat", "FLUDD can defeat enemies", true);
 		optionNumber("normal_defeat_time", "FLUDD time to defeat (tenths of a second)", 4, 1, 100, 1);
 		optionChoice("long_range", "Long range (enemies and characters seen and hit further away)",
-		             std::vector<const char*>(kRanges, kRanges + kRangeCount), 0);
+		             std::vector<const char*>(kRanges, kRanges + kRangeCount), 5);
 		optionChoice("shadow_mario", "Shadow Mario difficulty (how many hits to take him down)",
-		             std::vector<const char*>(kShadowLevels, kShadowLevels + kShadowCount), 2);
+		             std::vector<const char*>(kShadowLevels, kShadowLevels + kShadowCount), 5);
 		optionNumber("rifle_distance", "Rifle distance from the camera", 50, 30, 120, 5);
 		optionNumber("smg_distance", "Submachine gun distance from the camera", 45, 30, 120, 5);
 		optionNumber("bazooka_distance", "Bazooka distance from the camera", 55, 30, 120, 5);
-		optionNumber("rifle_rate", "Rifle fire rate (tenths of a second)", 8, 1, 100, 1);
+		optionNumber("rifle_rate", "Rifle fire rate (tenths of a second)", 13, 1, 100, 1);
 		optionNumber("rifle_push", "Rifle push (percent)", 300, 0, 400, 10);
 		optionNumber("rifle_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
 		optionNumber("rifle_water", "Rifle water per shot", 16, 0, 200, 2);
 		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
 		optionBool("rifle_scope", "Rifle sniper scope while zoomed", true);
-		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
+		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 300, 20, 500, 10);
 		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
-		optionNumber("smg_rate", "Submachine gun fire rate (hundredths of a second)", 15, 1, 100, 1);
-		optionNumber("smg_push", "Submachine gun push (percent, under 100 weaker than FLUDD)", 30, 0, 400, 10);
-		optionNumber("smg_defeat", "Submachine gun shots to defeat", 3, 1, 10, 1);
+		optionNumber("smg_rate", "Submachine gun fire rate (hundredths of a second)", 14, 1, 100, 1);
+		optionNumber("smg_push", "Submachine gun push (percent, under 100 weaker than FLUDD)", 90, 0, 400, 10);
+		optionNumber("smg_defeat", "Submachine gun shots to defeat", 6, 1, 10, 1);
 		optionNumber("smg_water", "Submachine gun water per shot", 16, 0, 200, 2);
-		optionNumber("smg_hit", "Submachine gun hit size (percent)", 500, 20, 500, 10);
+		optionNumber("smg_hit", "Submachine gun hit size (percent)", 100, 20, 500, 10);
 		optionNumber("smg_blob", "Submachine gun blob size (percent)", 20, 20, 400, 10);
-		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 10, 1, 200, 1);
-		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
+		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 9, 1, 200, 1);
+		optionNumber("bazooka_push", "Bazooka push (percent)", 150, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
 		optionNumber("bazooka_defeat", "Bazooka shots to defeat", 3, 1, 10, 1);
 		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
 		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
 		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
 		optionBool("rocket_jump", "Bazooka rocket jumps in first person (shoot near your feet)", true);
-		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 200, 10, 300, 10);
+		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 150, 10, 300, 10);
 
 		// the D-pad, once a frame
 		on<SmsEvFrame>(SMS_EV_FRAME, [this](SmsEvFrame& f) {

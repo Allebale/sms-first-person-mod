@@ -377,7 +377,7 @@ struct FirstPerson : sms::Mod {
 	{
 		toggleKey = bindKey("toggle", "V");
 		optionChoice("button", "Controller toggle button", std::vector<const char*>(kButtons, kButtons + 5), 0);
-		optionNumber("fov", "Field of view (degrees, up and down)", 80, 40, 100, 5);
+		optionNumber("fov", "Field of view (degrees, up and down)", 85, 40, 100, 5);
 		optionNumber("eye_height", "Eye height", 120, 60, 200, 5);
 		optionNumber("turn_speed", "C-stick turn speed", 210, 30, 480, 15);
 		optionNumber("tilt_speed", "C-stick tilt speed", 200, 0, 240, 10);
@@ -419,7 +419,7 @@ struct FirstPerson : sms::Mod {
 			const float x  = setting("invert_x", 1) ? -p.cstick_x : p.cstick_x;
 			const float y  = setting("invert", 1) ? -p.cstick_y : p.cstick_y;
 			// zoomed, the view turns as much slower as it is narrower, so the aim stays steady
-			const float slow = fovNow > 0.0f && setting("fov", 80) > 0 ? fovNow / (float)setting("fov", 80) : 1.0f;
+			const float slow = fovNow > 0.0f && setting("fov", 85) > 0 ? fovNow / (float)setting("fov", 85) : 1.0f;
 			if (fabsf(x) > 0.2f) // right turns right: the yaw goes down
 				yaw -= x * (float)setting("turn_speed", 210) * slow * dt;
 			if (fabsf(y) > 0.2f)
@@ -528,7 +528,7 @@ struct FirstPerson : sms::Mod {
 			c.target.y   = c.position.y + sp * 1000.0f;
 			c.target.z   = c.position.z + dz * cp * 1000.0f;
 			// a zoom (the FLUDD Weapons mod's Rifle): the view narrows (smoothly) while it is on
-			const float wide = (float)setting("fov", 80);
+			const float wide = (float)setting("fov", 85);
 			const float zoom = weaponsState().zoom_fovy;
 			const float want = zoom > 0.0f ? zoom : wide;
 			fovNow           = fovNow > 0.0f ? fovNow + (want - fovNow) * 0.25f : want;
