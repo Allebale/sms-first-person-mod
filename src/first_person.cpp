@@ -151,7 +151,8 @@ struct FirstPerson : sms::Mod {
 			fluddHeld = true;
 			if (weapons)
 				h->set_weapon(weaponNow(), (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
-				                               | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0));
+				                               | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0)
+				                               | (setting("bazooka_people", 0) ? SMS_SPRAY_KNOCK_NPCS : 0));
 			sendWeaponStats(h);
 		} else {
 			if (fluddHeld) {
@@ -165,7 +166,8 @@ struct FirstPerson : sms::Mod {
 			if (w3) {
 				h->set_weapon(w3, (setting("weapons_defeat", 1) ? SMS_SPRAY_DEFEAT : 0) | (firing() ? 2 : 0)
 				                      | (setting("normal_defeat", 1) ? SMS_SPRAY_DEFEAT_NORMAL : 0) | SMS_SPRAY_THIRD_PERSON
-				                      | (setting("third_person_models", 0) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0));
+				                      | (setting("third_person_models", 0) ? SMS_SPRAY_THIRD_PERSON_MODEL : 0)
+				                      | (setting("bazooka_people", 0) ? SMS_SPRAY_KNOCK_NPCS : 0));
 				sendWeaponStats(h);
 				thirdArmed = true;
 			} else if (thirdArmed) {
@@ -221,22 +223,22 @@ struct FirstPerson : sms::Mod {
 	bool upWasDown = false, rightWasDown = false, leftWasDown = false;
 	float fovNow  = 0.0f;  // the view's field of view now (eased to the zoom and back)
 
-	// D-pad up: the rifle's zoom on and off, while it is chosen and in view (not when D-pad up is
-	// the controller's first person toggle)
+	// D-pad up: the zoom on and off in first person, whatever is chosen (not when D-pad up is the
+	// controller's first person toggle)
 	void toggleZoom(const SmsPad& p)
 	{
 		const int b      = setting("button", 0);
 		const uint16_t t = b >= 0 && b < 5 ? kButtonBits[b] : 0;
-		if (zoomed && (chosen() != SMS_SPRAY_RIFLE || !fluddHeld))
+		if (zoomed && !(enabled && viewIsOurs))
 			zoomed = false;
 		// once a press: the moment D-pad up goes down (its "pressed" can come again while held)
 		const bool down  = (p.held & SMS_PAD_UP) != 0;
 		const bool fresh = down && !upWasDown;
 		upWasDown        = down;
-		if (!fresh || t == SMS_PAD_UP || chosen() != SMS_SPRAY_RIFLE || !fluddHeld)
+		if (!fresh || t == SMS_PAD_UP || !(enabled && viewIsOurs))
 			return;
 		zoomed = !zoomed;
-		info("rifle zoom %s", zoomed ? "on" : "off");
+		info("zoom %s", zoomed ? "on" : "off");
 	}
 
 	int weapon = 0; // the spray weapon chosen (kWeaponNames)
@@ -314,7 +316,7 @@ struct FirstPerson : sms::Mod {
 	// cross hairs with marks along them and a red dot in the middle, coming in with the zoom
 	bool drawScope()
 	{
-		if (!zoomed || !fluddHeld || !viewIsOurs || !setting("rifle_scope", 0))
+		if (!zoomed || !fluddHeld || !viewIsOurs || chosen() != SMS_SPRAY_RIFLE || !setting("rifle_scope", 0))
 			return false;
 		const float wide = (float)setting("fov", 80), zoom = (float)setting("rifle_zoom", 25);
 		float in         = wide - zoom > 0.5f ? (wide - fovNow) / (wide - zoom) : 1.0f; // 0 out, 1 all the way in
@@ -546,7 +548,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("shotgun_push", "Rifle push (percent)", 300, 0, 400, 10);
 		optionNumber("shotgun_defeat", "Rifle shots to defeat", 2, 1, 10, 1);
 		optionNumber("shotgun_water", "Rifle water per shot", 24, 0, 200, 2);
-		optionNumber("rifle_zoom", "Rifle zoom, D-pad up (field of view)", 25, 5, 60, 5);
+		optionNumber("rifle_zoom", "Zoom, D-pad up in first person (field of view)", 25, 5, 60, 5);
 		optionBool("rifle_scope", "Rifle sniper scope while zoomed", false);
 		optionNumber("rifle_hit", "Rifle hit size (percent, how near it must pass an enemy)", 500, 20, 500, 10);
 		optionNumber("rifle_blob", "Rifle blob size (percent)", 50, 20, 400, 10);
@@ -563,6 +565,7 @@ struct FirstPerson : sms::Mod {
 		optionNumber("bazooka_water", "Bazooka water per shot", 60, 0, 300, 5);
 		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
 		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
+		optionBool("bazooka_people", "Bazooka pushes people away too", false);
 		optionBool("rocket_jump", "Bazooka rocket jumps (shoot near your feet to fly)", false);
 		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 100, 10, 300, 10);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
