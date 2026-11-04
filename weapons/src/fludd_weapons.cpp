@@ -351,7 +351,7 @@ struct FluddWeapons : sms::Mod {
 		optionNumber("smg_water", "Submachine gun water per shot", 16, 0, 200, 2);
 		optionNumber("smg_hit", "Submachine gun hit size (percent)", 500, 20, 500, 10);
 		optionNumber("smg_blob", "Submachine gun blob size (percent)", 20, 20, 400, 10);
-		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 10, 1, 200, 5);
+		optionNumber("bazooka_rate", "Bazooka fire rate (tenths of a second)", 10, 1, 200, 1);
 		optionNumber("bazooka_push", "Bazooka push (percent)", 100, 0, 400, 10);
 		optionNumber("bazooka_range", "Bazooka range (percent)", 100, 10, 100, 10);
 		optionNumber("bazooka_defeat", "Bazooka shots to defeat", 3, 1, 10, 1);
