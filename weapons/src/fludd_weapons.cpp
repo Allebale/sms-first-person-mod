@@ -236,7 +236,7 @@ struct FluddWeapons : sms::Mod {
 		bz.drop_size     = 1.0f;
 		bz.burst         = (float)setting("bazooka_burst", 150) / 100.0f;
 		bz.lift          = (float)setting("bazooka_lift", 60) / 100.0f;
-		bz.self_jump     = setting("rocket_jump", 1) ? (float)setting("rocket_jump_power", 150) / 100.0f : 0.0f;
+		bz.self_jump     = setting("rocket_jump", 1) ? (float)setting("rocket_jump_power", 140) / 100.0f : 0.0f;
 		bz.view_distance = (float)setting("bazooka_distance", 55);
 		bz.far_scale     = far;
 		bz.shadow_damage = boss;
@@ -359,7 +359,7 @@ struct FluddWeapons : sms::Mod {
 		optionNumber("bazooka_burst", "Bazooka burst size (percent)", 150, 20, 400, 10);
 		optionNumber("bazooka_lift", "Bazooka air height (percent)", 60, 0, 400, 10);
 		optionBool("rocket_jump", "Bazooka rocket jumps in first person (shoot near your feet)", true);
-		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 150, 10, 300, 10);
+		optionNumber("rocket_jump_power", "Bazooka rocket jump strength (percent)", 140, 10, 300, 10);
 
 		// the D-pad, once a frame
 		on<SmsEvFrame>(SMS_EV_FRAME, [this](SmsEvFrame& f) {
