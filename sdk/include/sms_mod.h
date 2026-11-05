@@ -1805,6 +1805,10 @@ typedef struct SmsHeldFluddApi {
 	int (*set_view)(int on);
 	int (*set_zoom)(float fovy, int flags);
 	int (*get_state)(SmsHeldFluddState* state);
+	/* Mouse look for a first-person mod: the mouse's motion in pixels since the last call (right and
+	   down positive) into *dx, *dy; returns 1 while the game has the mouse captured (its mouse camera,
+	   F10), 0 when not (the motion is then 0). (Check size: SMS_API_HAS(held_fludd, take_mouse).) */
+	int (*take_mouse)(float* dx, float* dy);
 } SmsHeldFluddApi;
 
 enum { SMS_SPRAY_NORMAL = 0, SMS_SPRAY_SHOTGUN = 1, SMS_SPRAY_RIFLE = 2, SMS_SPRAY_BAZOOKA = 3, SMS_SPRAY_SMG = 4 };

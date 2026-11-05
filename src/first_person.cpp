@@ -157,6 +157,20 @@ struct FirstPerson : sms::Mod {
 			st = SmsHeldFluddState();
 		return st;
 	}
+	// Mouse look: the game's captured mouse (F10) turns and tilts the view, as in a PC shooter
+	// (api->held_fludd take_mouse; nothing on a game without it).
+	void mouseLook(float slow)
+	{
+		const SmsHeldFluddApi* h = heldFluddApi(api());
+		if (!setting("mouse_look", 1) || !h || h->size < offsetof(SmsHeldFluddApi, take_mouse) + sizeof(void*) || !h->take_mouse)
+			return;
+		float mx = 0.0f, my = 0.0f;
+		if (!h->take_mouse(&mx, &my) || (mx == 0.0f && my == 0.0f))
+			return;
+		const float k = 0.05f * (float)setting("mouse_speed", 100) / 100.0f * slow; // degrees a pixel
+		yaw -= mx * k; // right turns right: the yaw goes down
+		pitch = clampf(pitch + (setting("mouse_invert", 0) ? my : -my) * k, -75.0f, 75.0f);
+	}
 	float fovNow        = 0.0f;  // the view's field of view now (eased to a zoom and back)
 	bool flippedForZoom = false; // first person switched on for a zoom from third person
 	bool skipZoom       = false; // switched by hand during one: that one left alone until it ends
@@ -383,6 +397,9 @@ struct FirstPerson : sms::Mod {
 		optionNumber("tilt_speed", "C-stick tilt speed", 200, 0, 240, 10);
 		optionBool("invert_x", "Invert left and right", true);
 		optionBool("invert", "Invert up and down", true);
+		optionBool("mouse_look", "Mouse look (F10 captures the mouse)", true);
+		optionNumber("mouse_speed", "Mouse look speed (percent)", 100, 10, 400, 10);
+		optionBool("mouse_invert", "Invert mouse up and down", false);
 		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
@@ -424,6 +441,7 @@ struct FirstPerson : sms::Mod {
 				yaw -= x * (float)setting("turn_speed", 210) * slow * dt;
 			if (fabsf(y) > 0.2f)
 				pitch = clampf(pitch + y * (float)setting("tilt_speed", 200) * slow * dt, -75.0f, 75.0f);
+			mouseLook(slow);
 			aimFludd();
 			faceView(p);
 			if (p.pressed & SMS_PAD_L) {
