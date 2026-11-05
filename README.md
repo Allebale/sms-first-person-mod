@@ -13,9 +13,11 @@ A native mod for the Super Mario Sunshine PC port: the game seen through Mario's
 The Mods menu (F1) has: the controller button, field of view (60), eye height (130, higher on Yoshi
 by itself), turn and tilt speed, invert left and right, invert up and down, and what of Mario shows.
 
-## FLUDD Weapons (a second mod, in `weapons/`)
+## FLUDD Weapons
 
-FLUDD's spray nozzle fires a **Rifle**, a **Submachine gun** or a **Bazooka**: **D-pad left and right** choose, **R** fires, **D-pad up** zooms the Rifle (with a sniper scope). In first person (this mod, FLUDD in view) the weapon is held in view; in third person (its option) FLUDD stays on Mario's back, or is drawn as the weapon's pack (a zoom there goes into first person and back). The Bazooka's burst throws enemies, and in first person Mario too (rocket jumps). **Long range** (Off to Insane) draws enemies and characters, and lets them move, further away, so they can be hit there. Each mod works on its own; together they tell each other what is chosen through the game (`held_fludd`'s `get_state`). Both need a Remastered or First Person beta build of the game.
+The weapons (Rifle, Submachine gun, Bazooka, rocket jumps, the sniper scope) are their own mod now:
+[Allebale/fludd-weapons](https://github.com/Allebale/fludd-weapons). With both, the weapon is held in
+view in first person; the two tell each other what is chosen through the game (`held_fludd`).
 
 ## Which game it needs
 
