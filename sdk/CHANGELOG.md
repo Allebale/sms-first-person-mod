@@ -4,32 +4,28 @@ A release's tag is the API version (`v1.1.0` is API 1.1). Within a major version
 
 Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed under it, newest first, until it comes out. What a beta added may still change before the release; see [Pre-releases](docs/MODDING.md#pre-releases).
 
-## 1.6.0 (in beta)
+## 1.7.0
 
-### first-person-beta (Allebale's fork, not in the official SDK)
+FLUDD held in view and FLUDD's spray weapons, for first-person and weapons mods (Allebale's First Person and FLUDD Weapons).
 
-- `api->held_fludd` (`SmsHeldFluddApi`; `SMS_API_HAS(api, held_fludd)` and its `magic`): FLUDD held in front of the view like a gun, for a first-person camera; the water comes out of its nozzle there, towards the middle of the view.
-- `held_fludd->set_weapon(weapon, flags)` (`SMS_SPRAY_*`): the held FLUDD's spray fires as a shotgun, rifle, submachine gun or bazooka of water; their drops shove small enemies, and with `SMS_SPRAY_DEFEAT` defeat them after a few hits. The normal spray never does either.
-- `SmsSprayStats.self_jump`: the bazooka's rocket jump, its burst throwing Mario away from it (0, and from mods built before it, none).
-- The bazooka's rocket jump (`self_jump`) throws Mario only in first person.
-- `held_fludd` `set_view`, `set_zoom`, `get_state` (`SmsHeldFluddState`, `SMS_ZOOM_*`): a first-person mod and a weapons mod, each its own, work together through them.
-- `SmsSprayStats.view_distance` (each weapon's own hold distance in first person) and `far_scale` (long range: enemies and characters drawn and moving further away).
-- `SMS_SPRAY_THIRD_PERSON` in `set_weapon`'s flags: the weapon fires in third person too, with FLUDD on his back, the way Mario faces (aimed at a small enemy ahead). FLUDD's nozzle stays out while R is held and pumps as each shot goes.
-- `SMS_SPRAY_THIRD_PERSON_MODEL` in `set_weapon`'s flags: in third person all of FLUDD drawn as a pack of the weapon's colours with the weapon on it over his shoulder.
-- `held_fludd->set_weapon_stats(weapon, stats)` (`SmsSprayStats`): a spray weapon's fire rate, push, range, shots to defeat, water per shot, the rifle's hit size and the bazooka's burst, as a mod sets them.
+- `api->held_fludd` (`SmsHeldFluddApi`, after `files`; `SMS_API_HAS(api, held_fludd)` and its `magic`): `set` holds FLUDD in front of the view like a gun for a first-person camera, its water coming from the nozzle there.
+- `held_fludd->set_weapon(weapon, flags)` (`SMS_SPRAY_*`, `SMS_SPRAY_DEFEAT`, `SMS_SPRAY_DEFEAT_NORMAL`, `SMS_SPRAY_THIRD_PERSON`, `SMS_SPRAY_THIRD_PERSON_MODEL`): the spray fires as a rifle, submachine gun or bazooka of water, in first or third person; their shots push small enemies and may defeat them. The normal spray is the game's own.
+- `held_fludd->set_weapon_stats(weapon, stats)` (`SmsSprayStats`): each weapon's fire rate, push, range, shots to defeat, water, hit size, burst, lift, drop size, the bazooka's rocket jump (`self_jump`, first person only), hold distance (`view_distance`), long range (`far_scale`) and Shadow Mario's damage (`shadow_damage`).
+- `held_fludd->set_view`, `set_zoom` (`SMS_ZOOM_FIRST_PERSON`, `SMS_ZOOM_SCOPE`), `get_state` (`SmsHeldFluddState`, `game_scope`): a first-person mod and a weapons mod, each its own, work together through the game.
+- `held_fludd->take_mouse(dx, dy)`: the captured mouse's motion for a first-person mod's mouse look.
+- Nothing changes in the game unless a mod calls these.
 
-### 1.6.0-beta.2
+## 1.6.0
 
+A save file's menu at file select, for a mod's own screen on a new game; the episode select, and a Shine taken without its Shine Get, for randomizers; every status of Mario's asked, and the port's warps told apart from the stage's ways out; and goop for server mods.
+
+- `SMS_EV_FILE_MENU` (`SmsEvFileMenu`: `file`, `is_empty`, `open`, `item`): a save file's menu at file select (START, COPY, ERASE, SCORE) opened, ready for the player's choice, or closed, with the item chosen (`SMS_FILE_MENU_*`) or -1 for B. A mod's screen for a new game can open with the menu and hand the player's A or B on to it, so the player can still go back (docs/MODDING.md, "A file's menu"). In Lua, `file_menu` (`item` `"start"`, `"copy"`, `"erase"`, `"score"`, or `nil`).
 - `SMS_EV_EPISODE_SELECT` (`SmsEvEpisodeSelect`: `area`, `offered`, `first`, `max_offered`): a world's episode select is opening. `offered` (how many episodes it offers, from the first; 1 to `max_offered`) and `first` (the episode the cursor starts on) may be changed: every episode from the start, say, or the cursor elsewhere. In Super Mario Eclipse `max_offered` is 0 and only `first` may change. In Lua, `episode_select`.
 - `SMS_EV_SHINE_TOUCH` (`SmsEvShineTouch`: `object`, `shine`, `had`, `position`, `take`): Mario touched a Shine he is about to take, before its Shine Get. `take` `SMS_SHINE_TAKE_QUIET` takes it out of the stage with no Shine Get (no demo, no save, the stage not left, no `SMS_EV_SHINE_GET`, its flag as it was), and Mario plays on; cancel and he leaves it. A mod gives what the Shine stands for its own way (docs/MODDING.md, "Taking a Shine another way"). In Lua, `shine_touch` (`take` `"get"` or `"quiet"`).
 - `SMS_EV_PLAYER_STATUS` also comes for the statuses the game set without asking: a spin jump started in the air, and the landing of a throw in a jump. They may be changed or refused as every other; `SMS_EV_PLAYER_STATUS_CHANGED` comes for the throw's landing too.
 - `SMS_LEAVE_STATE_LOAD` (8): a save state's load going to its stage; `SMS_EV_STAGE_LEAVING` and `SMS_EV_STAGE_LOADING` come with it, but where it goes is not changed. The port's warp menu is `SMS_LEAVE_WARP`, as `game->warp` is. Neither is `SMS_LEAVE_WAY_OUT` any longer, nor sends `SMS_EV_STAGE_EXIT_REQUEST`: a mod that shuffles stages leaves them alone. In Lua, `"state_load"`.
-- The lua mod is version 1.6.0-beta.2.
-
-### 1.6.0-beta.1
-
-- `SMS_EV_FILE_MENU` (`SmsEvFileMenu`: `file`, `is_empty`, `open`, `item`): a save file's menu at file select (START, COPY, ERASE, SCORE) opened, ready for the player's choice, or closed, with the item chosen (`SMS_FILE_MENU_*`) or -1 for B. A mod's screen for a new game can open with the menu and hand the player's A or B on to it, so the player can still go back (docs/MODDING.md, "A file's menu"). In Lua, `file_menu` (`item` `"start"`, `"copy"`, `"erase"`, `"score"`, or `nil`).
-- The lua mod is version 1.6.0-beta.1.
+- `SMS_CMD_GOOP` (docs/MODDING.md, "Goop"): server mods paint the stage's goop over a disc (`SMS_GOOP_PAINT`, on every goop surface under it, or with `SMS_GOOP_AT_HEIGHT` only the one near its height), clean it (`SMS_GOOP_CLEAN`), and colour it: each paint is in one of 64 tints (0 the stage's own goop), and `SMS_GOOP_TINT` draws a tint in a colour (`0xRRGGBBAA`, the alpha how strongly), the goop's shading kept. Paints and cleans are everyone's, in order with the players' cleaning, a newcomer's game too; tints are per player, sticky per tint. In Lua, `type = "goop"` (`what` `"paint"`, `"clean"`, `"tint"`; `position`, `radius`, `tint`, `at_height`, `color`).
+- The lua mod is version 1.6.0.
 
 ## 1.5.0
 

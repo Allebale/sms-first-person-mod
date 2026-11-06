@@ -1,12 +1,12 @@
 # cmake -S . -B build -A x64 -DSMS_MODS_OUT=C:/path/to/the/game/mods   (Windows 64-bit)
 # cmake --build build --config Release
 #
-# The SDK: the copy in sdk/ (Chase's 1.6 beta 2 with api->held_fludd, from Allebale's SDK fork,
-# branch first-person-beta) when there is one, else GitHub's at SMS_MOD_SDK_TAG (no FLUDD in view).
+# The SDK: the copy in sdk/ (Chase's release 1.7.0, with api->held_fludd) when there is one,
+# else GitHub's at SMS_MOD_SDK_TAG.
 cmake_minimum_required(VERSION 3.16)
 project(first_person CXX)
 
-set(SMS_MOD_SDK_TAG v1.5.0-beta.8 CACHE STRING "The mod SDK's release")
+set(SMS_MOD_SDK_TAG v1.7.0 CACHE STRING "The mod SDK's release")
 # An SDK shipped next to this file (sdk/) is used as it is, no download.
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sdk/include/sms_mod.h AND NOT FETCHCONTENT_SOURCE_DIR_SMS_MOD_SDK)
   set(FETCHCONTENT_SOURCE_DIR_SMS_MOD_SDK ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
