@@ -21,14 +21,9 @@ view in first person; the two tell each other what is chosen through the game (`
 
 ## Which game it needs
 
-Any version of the game with mod support. Two features need a newer game (mod API 1.5 beta 8, not
-released yet): aiming FLUDD where you look (`player->set_aim`, `set_yaw`), and the Body only model
-(`player->set_hidden_parts`). On an older game FLUDD sprays the way Mario faces, and Mario is hidden.
-
-They come with these pull requests, once merged and a new game is released:
-
-- Game: [chasem-dev/sms-pc-port#318](https://github.com/chasem-dev/sms-pc-port/pull/318)
-- Mod SDK: [chasem-dev/sms-mod-sdk#12](https://github.com/chasem-dev/sms-mod-sdk/pull/12)
+Any version of the game with mod support. Everything works on Chase's beta 2026.11.06
+(launcher 1.0.1-beta.356) or newer. On an older game, FLUDD in view and mouse look are left out,
+and on one older than mod API 1.5 FLUDD sprays the way Mario faces and Mario is hidden.
 
 ## Download
 

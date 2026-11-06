@@ -39,8 +39,8 @@ const int kCrossCount = 10;
 
 float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 
-// FLUDD held in view like a gun: api->held_fludd (Allebale's First Person and Remastered builds;
-// not in Chase's own yet, where SMS_API_HAS says no). Taken only if its table says so (its magic).
+// FLUDD held in view like a gun: api->held_fludd (Chase's game from beta 2026.11.06; on an older
+// game SMS_API_HAS says no). Taken only if its table says so (its magic).
 const SmsHeldFluddApi* heldFluddApi(const SmsApi& api)
 {
 	if (api.size < offsetof(SmsApi, held_fludd) + sizeof(void*) || !api.held_fludd) // SMS_API_HAS
@@ -403,7 +403,7 @@ struct FirstPerson : sms::Mod {
 		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
 		optionBool("aim_fludd", "FLUDD sprays where you look", true);
 		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
-		optionBool("fludd_view", "FLUDD in view, held like a gun (Allebale's builds)", true);
+		optionBool("fludd_view", "FLUDD in view, held like a gun", true);
 		optionNumber("fludd_distance", "FLUDD distance from the camera", 55, 30, 120, 5);
 		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
