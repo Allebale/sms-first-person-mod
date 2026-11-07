@@ -122,6 +122,7 @@ struct FirstPerson : sms::Mod {
 	// FLUDD in view, held like a gun (the game moves its own model there), while the view is his;
 	// a weapon chosen by the FLUDD Weapons mod is held there instead (the game draws its model)
 	bool fluddHeld = false;
+	bool noCrosshair = false; // a stage's opening, or Mario dead: no crosshair
 	bool toldNoHeld = false;
 	void holdFludd()
 	{
@@ -202,7 +203,7 @@ struct FirstPerson : sms::Mod {
 
 	void drawCrosshair()
 	{
-		if (!fluddHeld || !viewIsOurs || !setting("crosshair", 1) || (weaponsState().zoom_flags & SMS_ZOOM_SCOPE))
+		if (!fluddHeld || !viewIsOurs || noCrosshair || !setting("crosshair", 1) || (weaponsState().zoom_flags & SMS_ZOOM_SCOPE))
 			return; // (none under the FLUDD Weapons mod's scope)
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
@@ -408,6 +409,11 @@ struct FirstPerson : sms::Mod {
 		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
 		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
 
+		// no crosshair from a stage's loading to its opening's end (its camera cutscene, the
+		// episode's name, "Go!"), nor once Mario has lost his life
+		on<SmsEvStage>(SMS_EV_STAGE_LOADED, [this](SmsEvStage&) { noCrosshair = true; });
+		on<SmsEvStage>(SMS_EV_STAGE_START, [this](SmsEvStage&) { noCrosshair = false; });
+		on<SmsEvPlayerDeath>(SMS_EV_PLAYER_DEATH, [this](SmsEvPlayerDeath&) { noCrosshair = true; });
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
 			if (k.scancode != toggleKey)
 				return SMS_CONTINUE;
