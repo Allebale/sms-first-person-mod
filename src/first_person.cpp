@@ -208,7 +208,7 @@ struct FirstPerson : sms::Mod {
 			return; // (none under the FLUDD Weapons mod's scope)
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
-		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || m.current_nozzle != 0) // (the underwater nozzle: none)
+		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || (m.current_nozzle != 0 && m.current_nozzle != 2)) // (the underwater one: held only with a weapon)
 			return;
 		float w = 0, h = 0;
 		draw().canvas(&w, &h);
