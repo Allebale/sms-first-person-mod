@@ -208,8 +208,10 @@ struct FirstPerson : sms::Mod {
 			return; // (none under the FLUDD Weapons mod's scope)
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
-		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || (m.current_nozzle != 0 && m.current_nozzle != 2)) // (the underwater one: held only with a weapon)
+		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || (m.current_nozzle != 0 && m.current_nozzle != 2))
 			return;
+		if (m.current_nozzle == 2 && !weaponsState().held)
+			return; // the underwater nozzle as a jet pack (plain FLUDD, on his back): nothing to aim; a weapon there holds it
 		float w = 0, h = 0;
 		draw().canvas(&w, &h);
 		const float x = w * 0.5f, y = h * 0.5f, r = h * 0.009f;
