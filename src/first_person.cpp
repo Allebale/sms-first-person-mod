@@ -123,6 +123,7 @@ struct FirstPerson : sms::Mod {
 	// a weapon chosen by the FLUDD Weapons mod is held there instead (the game draws its model)
 	bool fluddHeld = false;
 	bool noCrosshair = false; // a stage's opening, or Mario dead: no crosshair
+	bool onCoaster   = false; // Pinna Park's roller coaster (area 0x3A, stage 0 or 1)
 	bool toldNoHeld = false;
 	void holdFludd()
 	{
@@ -411,7 +412,10 @@ struct FirstPerson : sms::Mod {
 
 		// no crosshair from a stage's loading to its opening's end (its camera cutscene, the
 		// episode's name, "Go!"), nor once Mario has lost his life
-		on<SmsEvStage>(SMS_EV_STAGE_LOADED, [this](SmsEvStage&) { noCrosshair = true; });
+		on<SmsEvStage>(SMS_EV_STAGE_LOADED, [this](SmsEvStage& e) {
+			noCrosshair = true;
+			onCoaster   = e.area == 0x3A && (e.episode == 0 || e.episode == 1); // Mecha-Bowser's roller coaster
+		});
 		on<SmsEvStage>(SMS_EV_STAGE_START, [this](SmsEvStage&) { noCrosshair = false; });
 		on<SmsEvPlayerDeath>(SMS_EV_PLAYER_DEATH, [this](SmsEvPlayerDeath&) { noCrosshair = true; });
 		on<SmsEvKey>(SMS_EV_KEY, [this](SmsEvKey& k) {
@@ -503,7 +507,8 @@ struct FirstPerson : sms::Mod {
 			// stance comes from R's click; its analog part is the strength.
 			// standing still it stays: R all the way down crouches him, and A then back flips
 			const bool moving = a * a + b * b >= 25.0f * 25.0f;
-			if (moving && (s.buttons & SMS_PAD_R) && setting("run_spray", 1) && spraysWithR()) {
+			// (not on Pinna Park's roller coaster: R's click fires its rocket)
+			if (moving && !onCoaster && (s.buttons & SMS_PAD_R) && setting("run_spray", 1) && spraysWithR()) {
 				s.buttons &= (uint16_t)~SMS_PAD_R;
 				if (s.trigger_r < 255)
 					s.trigger_r = 255;
