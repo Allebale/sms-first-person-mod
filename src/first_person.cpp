@@ -208,7 +208,7 @@ struct FirstPerson : sms::Mod {
 			return; // (none under the FLUDD Weapons mod's scope)
 		SmsPlayer m = SmsPlayer();
 		m.size      = sizeof m;
-		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || (m.current_nozzle != 0 && m.current_nozzle != 2))
+		if (!api().player->get(&m) || !m.has_fludd || m.on_yoshi || m.current_nozzle != 0) // (the underwater nozzle: none)
 			return;
 		float w = 0, h = 0;
 		draw().canvas(&w, &h);
@@ -355,6 +355,15 @@ struct FirstPerson : sms::Mod {
 		return api().player->get(&m) && !m.in_water;
 	}
 
+	// FLUDD's underwater nozzle (the jet pack under the sea): the stick steers it and R pushes him,
+	// FLUDD on his back as ever: not aimed by the view, nor held in it
+	bool underwaterNozzle() const
+	{
+		SmsPlayer m = SmsPlayer();
+		m.size      = sizeof m;
+		return api().player->get(&m) && m.has_fludd && m.current_nozzle == 2;
+	}
+
 	// While R is held (FLUDD sprays, Yoshi spits), Mario's body and FLUDD
 	// face where the view looks, so the water goes straight ahead, while the
 	// stick still walks him any way: sideways too (player->set_aim, mod API
@@ -363,7 +372,7 @@ struct FirstPerson : sms::Mod {
 	{
 		const SmsPad p = pad(0);
 		const bool want = enabled && viewIsOurs && haveYaw && setting("aim_fludd", 1)
-		                  && ((p.held & SMS_PAD_R) || p.trigger_r >= 0.1f) && !holding();
+		                  && ((p.held & SMS_PAD_R) || p.trigger_r >= 0.1f) && !holding() && !underwaterNozzle();
 		const bool hasAim = SMS_API_HAS(api().player, set_aim);
 		if (!want && hasAim && bodyFacesView()) {  // his body the view's way, FLUDD level
 			api().player->set_aim(1, yaw, 0.0f);
