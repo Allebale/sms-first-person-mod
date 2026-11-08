@@ -12,6 +12,7 @@
 // camera. SMS_EV_HIDE_PLAYER_MODEL leaves his model and FLUDD out. During
 // cutscenes and talks the game's own camera is left as it is.
 #include <sms_mod.hpp>
+#include "recommended_preset.h"
 
 #include <math.h>
 #include <string>
@@ -54,6 +55,8 @@ const SmsHeldFluddApi* heldFluddApi(const SmsApi& api)
 
 struct FirstPerson : sms::Mod {
 	using sms::Mod::Mod;
+
+	RecommendedPreset preset{*this}; // the "Settings preset" row: Recommended (the defaults) or Custom
 
 	bool enabled   = false;
 	int toggleKey  = -1;
@@ -403,23 +406,25 @@ struct FirstPerson : sms::Mod {
 	int load() override
 	{
 		toggleKey = bindKey("toggle", "V");
-		optionChoice("button", "Controller toggle button", std::vector<const char*>(kButtons, kButtons + 5), 0);
-		optionNumber("fov", "Field of view (degrees, up and down)", 85, 40, 100, 5);
-		optionNumber("eye_height", "Eye height", 120, 60, 200, 5);
-		optionNumber("turn_speed", "C-stick turn speed", 210, 30, 480, 15);
-		optionNumber("tilt_speed", "C-stick tilt speed", 200, 0, 240, 10);
-		optionBool("invert_x", "Invert left and right", true);
-		optionBool("invert", "Invert up and down", true);
-		optionBool("mouse_look", "Mouse look (F10 captures the mouse)", true);
-		optionNumber("mouse_speed", "Mouse look speed (percent)", 100, 10, 400, 10);
-		optionBool("mouse_invert", "Invert mouse up and down", false);
-		optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
-		optionBool("aim_fludd", "FLUDD sprays where you look", true);
-		optionBool("run_spray", "R all the way down: keep moving while spraying", true);
-		optionBool("fludd_view", "FLUDD in view, held like a gun", true);
-		optionNumber("fludd_distance", "FLUDD distance from the camera", 55, 30, 120, 5);
-		optionBool("crosshair", "Crosshair while FLUDD is in view", true);
-		optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
+		preset.addRow();
+		preset.optionChoice("button", "Controller toggle button", std::vector<const char*>(kButtons, kButtons + 5), 0);
+		preset.optionNumber("fov", "Field of view (degrees, up and down)", 85, 40, 100, 5);
+		preset.optionNumber("eye_height", "Eye height", 120, 60, 200, 5);
+		preset.optionNumber("turn_speed", "C-stick turn speed", 210, 30, 480, 15);
+		preset.optionNumber("tilt_speed", "C-stick tilt speed", 200, 0, 240, 10);
+		preset.optionBool("invert_x", "Invert left and right", true);
+		preset.optionBool("invert", "Invert up and down", true);
+		preset.optionBool("mouse_look", "Mouse look (F10 captures the mouse)", true);
+		preset.optionNumber("mouse_speed", "Mouse look speed (percent)", 100, 10, 400, 10);
+		preset.optionBool("mouse_invert", "Invert mouse up and down", false);
+		preset.optionChoice("model", "Mario in first person", std::vector<const char*>(kModels, kModels + 2), MODEL_BODY);
+		preset.optionBool("aim_fludd", "FLUDD sprays where you look", true);
+		preset.optionBool("run_spray", "R all the way down: keep moving while spraying", true);
+		preset.optionBool("fludd_view", "FLUDD in view, held like a gun", true);
+		preset.optionNumber("fludd_distance", "FLUDD distance from the camera", 55, 30, 120, 5);
+		preset.optionBool("crosshair", "Crosshair while FLUDD is in view", true);
+		preset.optionChoice("crosshair_color", "Crosshair color", std::vector<const char*>(kCrossNames, kCrossNames + kCrossCount), 8);
+		preset.check();
 
 		// no crosshair from a stage's loading to its opening's end (its camera cutscene, the
 		// episode's name, "Go!"), nor once Mario has lost his life
