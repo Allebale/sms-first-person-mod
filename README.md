@@ -13,6 +13,13 @@ A native mod for the Super Mario Sunshine PC port: the game seen through Mario's
 The Mods menu (F1) has: the controller button, field of view (60), eye height (130, higher on Yoshi
 by itself), turn and tilt speed, invert left and right, invert up and down, and what of Mario shows.
 
+## Split-screen co-op
+
+With a second player (the game's co-op), each player has a first-person view of their own: each
+switches it with their own controller's button (the keyboard's V and the mouse are player 1's), and
+each sees the other's whole Mario. Needs a game with `held_fludd`'s `select_player` (the First Person
+beta of 2026.11.10 or newer); on an older game first person is player 1's only.
+
 ## FLUDD Weapons
 
 The weapons (Rifle, Submachine gun, Bazooka, rocket jumps, the sniper scope) are their own mod now:
