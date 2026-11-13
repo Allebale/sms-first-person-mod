@@ -129,6 +129,9 @@ jobs:
               exit 0
             fi
           fi
+          if [[ -f RELEASE_NOTES.md ]]; then
+            cp RELEASE_NOTES.md notes.md   # this version's changelog
+          else
           cat > notes.md <<'NOTES'
           Unzip into the game's `mods` folder.
 
@@ -140,4 +143,5 @@ jobs:
           - Game: https://github.com/chasem-dev/sms-pc-port/pull/318
           - Mod SDK: https://github.com/chasem-dev/sms-mod-sdk/pull/12
           NOTES
+          fi
           gh release create "$tag" zip/*.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "First Person $tag" --notes-file notes.md
