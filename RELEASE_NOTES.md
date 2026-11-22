@@ -1,6 +1,13 @@
+## First Person 1.3.1
+
+Mod API: 1.8
+
+For the stable game with mod API 1.8 (launcher Stable 1.2.0 and newer). On an older game (mod API 1.7), use v1.2.3.
+
+- Built with the final mod SDK 1.8.0: no more pre-release, and no rebuild warning. Otherwise the same as 1.3.0, below.
+
 ## First Person 1.3.0
 
-**Co-op first person needs the launcher's Beta build of the game.** Everything else works on any game with mod support.
 
 ### New
 - **Split-screen co-op:** each player has their own first-person view. Each one switches it with their own controller's button (the keyboard's V and the mouse are player 1's), and their view, aim, held FLUDD and crosshair are their own, in their part of the screen.
